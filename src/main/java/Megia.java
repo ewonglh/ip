@@ -1,8 +1,6 @@
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.Locale;
-import java.util.Properties;
-import java.util.ResourceBundle;
+import java.util.*;
 
 public class Megia {
 
@@ -25,6 +23,8 @@ public class Megia {
                 "i18n.messages.messages",
                 Locale.of(prop.getProperty("language"))
         );
+        Scanner userInput = new Scanner(System.in);
+        String cmd = "";
 
         String banner = """
                 /\\ "-./  \\   /\\  ___\\   /\\  ___\\   /\\ \\   /\\  __ \\
@@ -33,7 +33,16 @@ public class Megia {
                 \\/_/  \\/_/   \\/_____/   \\/_____/   \\/_/   \\/_/\\/_/
                 """.stripTrailing() + "\n\n";
 
-        MessageSender.sendMessage(banner + messages.getString("greeting"));
+        MessageSender.sendGreeting(banner + messages.getString("greeting"));
+
+        while (true) {
+            System.out.print("> ");
+            cmd = userInput.nextLine();
+            if (cmd.equals("bye")) {
+                break;
+            }
+            MessageSender.sendMessage(cmd);
+        }
         MessageSender.sendMessage(messages.getString("farewell"));
     }
 }
