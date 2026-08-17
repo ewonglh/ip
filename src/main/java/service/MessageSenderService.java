@@ -5,7 +5,7 @@ public class MessageSenderService {
     private static final StringBuilder line = new StringBuilder()
             .append("\n")
             .append("\033[37m")
-            .repeat("\u2500", 80)
+            .repeat("─", 80)
             .append("\033[0m");
 
     public static void sendGreeting(String message){

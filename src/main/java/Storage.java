@@ -1,15 +1,14 @@
 import service.LocalizationService;
-import service.MessageSenderService;
 
 import java.util.ArrayList;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 public class Storage<T> {
-    private ArrayList<T> list;
+    private final ArrayList<T> list;
 
     public Storage() {
-        list = new ArrayList<T>(100);
+        list = new ArrayList<>(100);
     }
 
     public void add(T item){
