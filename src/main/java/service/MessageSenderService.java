@@ -1,4 +1,6 @@
-public class MessageSender {
+package service;
+
+public class MessageSenderService {
 
     private static final StringBuilder line = new StringBuilder()
             .append("\n")
@@ -8,7 +10,7 @@ public class MessageSender {
 
     public static void sendGreeting(String message){
         System.out.println(line);
-        MessageSender.sendMessage(message);
+        MessageSenderService.sendMessage(message);
     }
     public static void sendMessage(String message) {
         System.out.println(message);
