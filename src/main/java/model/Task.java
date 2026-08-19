@@ -19,7 +19,7 @@ public class Task {
 
     @Override
     public String toString() {
-        return String.format("[%c] " + task, (done ? 'X' : ' '));
+        return String.format("[%c] %s", (done ? 'X' : ' '), task);
     }
 
     public boolean isDone() {

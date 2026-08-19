@@ -2,7 +2,7 @@ import model.Task;
 import model.TaskStorage;
 import service.LocalizationService;
 import service.MessageSenderService;
-import service.PropertiesService;
+import service.TaskParser;
 import service.TaskService;
 
 public static String banner = """
@@ -13,8 +13,9 @@ public static String banner = """
     """.stripTrailing() + "\n\n";
 
 void main() {
-  Properties prop = PropertiesService.getProperties();
   TaskStorage taskStorage = new TaskStorage();
+  TaskService taskService = new TaskService(taskStorage);
+  TaskParser taskParser = new TaskParser();
   Scanner userInput = new Scanner(System.in);
   String cmd, rawInput, body;
   boolean end = false;
@@ -23,19 +24,58 @@ void main() {
       LocalizationService.getMessage("greeting"));
 
   while (!end) {
-    IO.print("> ");
-    rawInput = userInput.nextLine();
-    cmd = Arrays.stream(rawInput.split(" ")).findFirst().orElse("");
-    body = Arrays.stream(rawInput.split(" ")).skip(1).collect(Collectors.joining(" "));
+      try {
+          IO.print("> ");
+          rawInput = userInput.nextLine();
+          String trimmedInput = rawInput.strip();
+          if (trimmedInput.isEmpty()) {
+              cmd = "";
+              body = "";
+          } else {
+              String[] inputParts = trimmedInput.split("\\s+", 2);
+              cmd = inputParts[0];
+              body = inputParts.length > 1 ? inputParts[1] : "";
+          }
 
-    switch (cmd) {
-      case "list" -> MessageSenderService.sendMessage(taskStorage.toString());
-      case "bye" -> end = true;
-      case "todo", "deadline", "event" -> TaskService.parseTaskAddition(cmd, body, taskStorage);
-      case "mark", "unmark" -> TaskService.handleTaskStatusCommand(cmd, body, taskStorage);
-      case "" -> MessageSenderService.sendMessage(LocalizationService.getMessage("empty"));
-      default -> MessageSenderService.sendMessage(LocalizationService.getMessage("invalid_command"));
-    }
+          switch (cmd) {
+              case "list" -> MessageSenderService.sendMessage(taskStorage.toString());
+              case "bye" -> end = true;
+              case "todo", "deadline", "event" -> {
+                  Task newTask = taskParser.parse(cmd, body);
+                  taskService.addTask(newTask);
+
+                  MessageSenderService.sendMessage(
+                          LocalizationService.getMessage("task_storage_add") +
+                                  "\n" +
+                                  "  " + newTask +
+                                  "\n" +
+                                  String.format(
+                                          LocalizationService.getMessage("task_storage_add_2"),
+                                          taskService.getTaskCount()));
+              }
+              case "mark", "unmark" -> {
+                  try {
+                      int taskId = Integer.parseInt(body.trim());
+                      Task task = cmd.equals("mark")
+                              ? taskService.markTask(taskId)
+                              : taskService.unmarkTask(taskId);
+                      String messageKey = cmd.equals("mark")
+                              ? "task_storage_mark"
+                              : "task_storage_unmark";
+
+                      MessageSenderService.sendMessage(
+                              LocalizationService.getMessage(messageKey) + "\n" + task);
+                  } catch (IllegalArgumentException e) {
+                      MessageSenderService.sendMessage(
+                              LocalizationService.getMessage("task_invalid_id"));
+                  }
+              }
+              case "" -> MessageSenderService.sendMessage(LocalizationService.getMessage("empty"));
+              default -> MessageSenderService.sendMessage(LocalizationService.getMessage("invalid_command"));
+          }
+      } catch (Exception e) {
+          MessageSenderService.sendMessage(e.getMessage());
+      }
   }
   userInput.close();
   MessageSenderService.sendMessage(LocalizationService.getMessage("farewell"));

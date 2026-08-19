@@ -1,87 +1,71 @@
 package service;
 
-import model.*;
+import model.Task;
+import model.TaskStorage;
 
-import java.util.Objects;
-
+/**
+ * Performs task operations without depending on the console UI.
+ */
 public class TaskService {
 
-    public static void handleTaskStatusCommand(String cmd, String body, TaskStorage taskStorage) {
-        final int taskId;
+    private final TaskStorage taskStorage;
 
-        try {
-            taskId = Integer.parseInt(body.trim());
-        } catch (NumberFormatException e) {
-            MessageSenderService.sendMessage(LocalizationService.getMessage("task_invalid_id"));
-            return;
-        }
-
-        if (!taskStorage.isValidTaskId(taskId)) {
-            MessageSenderService.sendMessage(LocalizationService.getMessage("task_invalid_id"));
-            return;
-        }
-
-        String messageKey;
-        if (cmd.equals("mark")) {
-            taskStorage.markAsDone(taskId);
-            messageKey = "task_storage_mark";
-        } else {
-            taskStorage.markAsNotDone(taskId);
-            messageKey = "task_storage_unmark";
-        }
-
-        MessageSenderService.sendMessage(
-                LocalizationService.getMessage(messageKey) + "\n" + taskStorage.getTask(taskId));
+    /**
+     * Creates a service backed by the supplied task storage.
+     *
+     * @param taskStorage storage used by this service
+     */
+    public TaskService(TaskStorage taskStorage) {
+        this.taskStorage = taskStorage;
     }
 
-    public static void parseTaskAddition(String cmd, String rawTask, TaskStorage taskStorage) {
-        String[] tokens = rawTask.split(" ");
-        Task newTask = new Task("");
+    /**
+     * Adds a task to the list.
+     *
+     * @param task task to add
+     */
+    public void addTask(Task task) {
+        taskStorage.add(task);
+    }
 
-        switch (cmd) {
-            case "todo" -> {
-                newTask = new ToDo(rawTask);
-            }
-            case "deadline" -> {
-                StringBuilder task = new StringBuilder(), by = new StringBuilder();
-                boolean foundBy = false;
-                for (String token : tokens) {
-                    if (token.equals("/by")) { foundBy = true;}
+    /**
+     * Marks a task as done.
+     *
+     * @param taskId one-based task ID
+     * @return the updated task
+     */
+    public Task markTask(int taskId) {
+        Task task = getTask(taskId);
+        task.markAsDone();
+        return task;
+    }
 
-                    else if (!foundBy) { task.append(token).append(" "); }
+    /**
+     * Marks a task as not done.
+     *
+     * @param taskId one-based task ID
+     * @return the updated task
+     */
+    public Task unmarkTask(int taskId) {
+        Task task = getTask(taskId);
+        task.markAsNotDone();
+        return task;
+    }
 
-                    else { by.append(token).append(" "); }
+    /**
+     * Retrieves a task by its one-based user-facing ID.
+     *
+     * @param taskId one-based task ID
+     * @return the matching task
+     */
+    public Task getTask(int taskId) {
+        return taskStorage.getTaskById(taskId);
+    }
 
-                    newTask = new Deadline(task.toString(), by.toString());
-                }
-            }
-            case "event" -> {
-                StringBuilder task = new StringBuilder(), from = new StringBuilder(), by = new StringBuilder();
-                boolean foundTo = false;
-                boolean foundFrom = false;
-                for (String token : tokens) {
-                    if (token.equals("/to")) { foundTo = true; foundFrom = false; }
-
-                    else if (token.equals("/from")) { foundTo = false; foundFrom = true; }
-
-                    else if (foundFrom) { from.append(token).append(" "); }
-
-                    else if (foundTo) { by.append(token).append(" "); }
-
-                    else { task.append(token).append(" "); }
-
-                    newTask = new Event(task.toString(), from.toString(), by.toString());
-                }
-            }
-        }
-
-        taskStorage.add(newTask);
-        MessageSenderService.sendMessage(
-                LocalizationService.getMessage("task_storage_add") +
-                "\n" +
-                newTask +
-                String.format(
-                        LocalizationService.getMessage("task_storage_add_2"),
-                        taskStorage.getTaskCount()));
+    /**
+     * Returns the number of stored tasks.
+     */
+    public int getTaskCount() {
+        return taskStorage.getTaskCount();
     }
 }

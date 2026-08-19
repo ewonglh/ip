@@ -30,10 +30,6 @@ public class TaskStorage extends Storage<Task>{
         getTaskById(taskId).markAsNotDone();
     }
 
-    public String getTask(int taskId) {
-        return getTaskById(taskId).toString();
-    }
-
     public int getTaskCount() {
         return list.size();
     }
@@ -45,7 +41,7 @@ public class TaskStorage extends Storage<Task>{
      * @return the matching task
      * @throws IllegalArgumentException if the ID does not exist
      */
-    private Task getTaskById(int taskId) {
+    public Task getTaskById(int taskId) {
         if (!isValidTaskId(taskId)) {
             throw new IllegalArgumentException("Task ID does not exist: " + taskId);
         }
@@ -59,7 +55,7 @@ public class TaskStorage extends Storage<Task>{
                 : LocalizationService.getMessage("task_storage_list") + "\n" +
                 IntStream.range(0, list.size())
                         // Map each int in int stream to item in list
-                .mapToObj(i -> (i + 1) + ". " + list.get(i).toString() + "\n")
+                .mapToObj(i -> (i + 1) + "." + list.get(i).toString() + "\n")
                         // Collect all strings in stream to 1 string
                 .collect(Collectors.joining()).strip();
     }
