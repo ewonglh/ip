@@ -1,4 +1,4 @@
-package data;
+package model;
 
 import service.LocalizationService;
 
@@ -32,6 +32,10 @@ public class TaskStorage extends Storage<Task>{
 
     public String getTask(int taskId) {
         return getTaskById(taskId).toString();
+    }
+
+    public int getTaskCount() {
+        return list.size();
     }
 
     /**
