@@ -73,4 +73,19 @@ public class TaskService {
     public int getTaskCount() {
         return taskStorage.getTaskCount();
     }
+
+    /**
+     * Deletes the task using its one-based user-facing ID.
+     *
+     * @param taskId one-based task ID
+     * @return the deleted task
+     */
+    public Task deleteTask(int taskId) throws TaskNotFoundException {
+        if (!taskStorage.isValidTaskId(taskId)) {
+            throw new TaskNotFoundException(taskId, taskStorage.getTaskCount(), "delete");
+        }
+        Task toDelete = taskStorage.getTaskById(taskId);
+        taskStorage.deleteTaskById(taskId);
+        return toDelete;
+    }
 }

@@ -59,14 +59,14 @@ void main() {
                                           LocalizationService.getMessage("task_storage_add_2"),
                                           taskService.getTaskCount()));
               }
-              case "mark", "unmark" -> {
+              case "mark", "unmark", "delete" -> {
                   int taskId = taskParser.parseTaskId(body, cmd);
                   Task task = cmd.equals("mark")
                           ? taskService.markTask(taskId)
-                          : taskService.unmarkTask(taskId);
-                  String messageKey = cmd.equals("mark")
-                          ? "task_storage_mark"
-                          : "task_storage_unmark";
+                          : cmd.equals("unmark")
+                          ? taskService.unmarkTask(taskId)
+                          : taskService.deleteTask(taskId);
+                  String messageKey = "task_storage_" + cmd;
 
                   MessageSenderService.sendMessage(
                           LocalizationService.getMessage(messageKey) + "\n" + task);

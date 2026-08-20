@@ -1,26 +1,76 @@
-# Megia project template
+# Megia
 
-This is a project template for a greenfield Java project. It's named Megia. Given below are instructions on how to use it.
+Megia is a command-line task manager written in Java 25. It supports todos,
+deadlines, and events, with localized and corrective error messages for invalid
+input.
 
-## Setting up in Intellij
+## Features
 
-Prerequisites: JDK 25, update Intellij to the most recent version.
+- Add todos, deadlines, and events
+- List stored tasks
+- Mark and unmark tasks
+- English and Chinese localization
+- Specific error messages that explain how to correct invalid commands
 
-1. Open Intellij (if you are not in the welcome screen, click `File` > `Close Project` to close the existing project first)
-2. Open the project into Intellij as follows:
-   1. Click `Open`.
-   2. Select the project directory, and click `OK`.
-   3. If there are any further prompts, accept the defaults.
-3. Configure the project to use **JDK 25** (not other versions) as explained in [here](https://www.jetbrains.com/help/idea/sdk.html#set-up-jdk).<br>
-   In the same dialog, set the **Project language level** field to the `SDK default` option.
-4. After that, locate the `src/main/java/Megia.java` file, right-click it, and choose `Run Megia.main()` (if the code editor is showing compile errors, try restarting the IDE). If the setup is correct, you should see something like the below as the output:
+## Commands
 
+| Command | Example |
+|---|---|
+| `todo <description>` | `todo borrow a book` |
+| `deadline <description> /by <date>` | `deadline submit report /by Friday 5pm` |
+| `event <description> /from <start> /to <end>` | `event meeting /from 2pm /to 4pm` |
+| `list` | `list` |
+| `mark <task number>` | `mark 1` |
+| `unmark <task number>` | `unmark 1` |
+| `bye` | `bye` |
+
+Dates and times are stored as free-form text. Trailing arguments supplied to
+`list` and `bye` are ignored.
+
+## Requirements
+
+- JDK 25
+- A recent version of IntelliJ IDEA, or a terminal with Java configured
+
+## Running in IntelliJ IDEA
+
+1. Open the repository in IntelliJ IDEA.
+2. Configure the project SDK and language level to Java 25.
+3. Open `src/main/java/Megia.java`.
+4. Run `Megia.main()`.
+
+Keep `src/main/java` as the Java source root.
+
+## Running from the terminal
+
+```bash
+java --class-path src/main/java:src/main/resources src/main/java/Megia.java
 ```
- __    __     ______     ______     __     ______    
-/\ "-./  \   /\  ___\   /\  ___\   /\ \   /\  __ \   
-\ \ \-./\ \  \ \  __\   \ \ \__‾\  \ \ \  \ \  __ \  
-\ \_\ \ \_\  \ \_____\  \ \_____\  \ \_\  \ \_\ \_\
-\/_/  \/_/   \/_____/   \/_____/   \/_/   \/_/\/_/
-   ```
 
-**Warning:** Keep the `src\main\java` folder as the root folder for Java files (i.e., don't rename those folders or move Java files to another folder outside of this folder path), as this is the default location some tools (e.g., Gradle) expect to find Java files.
+## Running the console tests
+
+```bash
+python3 .codex/skills/test-ui/scripts/run_ui_tests.py \
+  --plan test/ui-test-plan.md
+```
+
+The test runner compiles the project using Java 25 and executes each console
+test in a fresh process.
+
+## Localization
+
+Set the language in `src/main/resources/application.properties`:
+
+```properties
+language=en
+```
+
+Use `en` for English or `cn` for Chinese. If the configuration cannot be
+loaded, Megia falls back to English.
+
+## AI use declaration
+
+I used Codex to discuss the error-handling architecture, plan the increment,
+implement structured and localized error handling, identify edge cases, and
+expand the console UI tests. I reviewed the generated changes and verified
+them using the project's Java 25 test runner.

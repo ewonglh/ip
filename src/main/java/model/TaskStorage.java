@@ -42,10 +42,11 @@ public class TaskStorage extends Storage<Task>{
      * @throws IllegalArgumentException if the ID does not exist
      */
     public Task getTaskById(int taskId) {
-        if (!isValidTaskId(taskId)) {
-            throw new IllegalArgumentException("Task ID does not exist: " + taskId);
-        }
         return list.get(taskId - 1);
+    }
+
+    public void deleteTaskById(int taskId) {
+        list.remove(taskId - 1);
     }
 
     @Override
