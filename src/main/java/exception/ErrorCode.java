@@ -1,5 +1,8 @@
 package exception;
 
+/**
+ * Identifies a user-facing error independently of its localized message.
+ */
 public enum ErrorCode {
     TODO_DESCRIPTION_MISSING,
     DEADLINE_BY_MARKER_MISSING,
@@ -16,6 +19,7 @@ public enum ErrorCode {
     TASK_ID_NOT_INTEGER,
     TASK_ID_NOT_POSITIVE,
     TASK_ID_TOO_LARGE,
+    TASK_LIST_EMPTY,
     TASK_NOT_FOUND,
-    UNEXPECTED_ARGUMENTS
+    UNKNOWN_COMMAND
 }

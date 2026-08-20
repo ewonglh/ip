@@ -36,7 +36,7 @@ public class TaskService {
      * @return the updated task
      */
     public Task markTask(int taskId) throws TaskNotFoundException {
-        Task task = getTask(taskId);
+        Task task = getTask(taskId, "mark");
         task.markAsDone();
         return task;
     }
@@ -48,7 +48,7 @@ public class TaskService {
      * @return the updated task
      */
     public Task unmarkTask(int taskId) throws TaskNotFoundException {
-        Task task = getTask(taskId);
+        Task task = getTask(taskId, "unmark");
         task.markAsNotDone();
         return task;
     }
@@ -57,11 +57,12 @@ public class TaskService {
      * Retrieves a task by its one-based user-facing ID.
      *
      * @param taskId one-based task ID
+     * @param operation operation being attempted
      * @return the matching task
      */
-    public Task getTask(int taskId) throws TaskNotFoundException {
+    private Task getTask(int taskId, String operation) throws TaskNotFoundException {
         if (!taskStorage.isValidTaskId(taskId)) {
-            throw new TaskNotFoundException("invalid_task_type");
+            throw new TaskNotFoundException(taskId, taskStorage.getTaskCount(), operation);
         }
         return taskStorage.getTaskById(taskId);
     }

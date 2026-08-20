@@ -1,9 +1,10 @@
 package exception;
 
-import service.LocalizationService;
-
+/**
+ * Reports invalid command syntax or values supplied by the user.
+ */
 public class UserInputException extends MegiaException {
-    public UserInputException(ErrorCode error) {
-        super(LocalizationService.getException(String.valueOf(error)));
+    public UserInputException(ErrorCode errorCode, Object... messageArguments) {
+        super(errorCode, messageArguments);
     }
 }

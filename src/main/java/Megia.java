@@ -1,4 +1,6 @@
+import exception.ErrorCode;
 import exception.MegiaException;
+import exception.UserInputException;
 import model.Task;
 import model.TaskStorage;
 import service.LocalizationService;
@@ -27,7 +29,10 @@ void main() {
   while (!end) {
       try {
           IO.print("> ");
-          rawInput = userInput.hasNextLine() ? userInput.nextLine() : "";
+          if (!userInput.hasNextLine()) {
+              break;
+          }
+          rawInput = userInput.nextLine();
           String trimmedInput = rawInput.strip();
           if (trimmedInput.isEmpty()) {
               cmd = "";
@@ -55,7 +60,7 @@ void main() {
                                           taskService.getTaskCount()));
               }
               case "mark", "unmark" -> {
-                  int taskId = taskParser.parseTaskId(body.trim());
+                  int taskId = taskParser.parseTaskId(body, cmd);
                   Task task = cmd.equals("mark")
                           ? taskService.markTask(taskId)
                           : taskService.unmarkTask(taskId);
@@ -67,10 +72,14 @@ void main() {
                           LocalizationService.getMessage(messageKey) + "\n" + task);
               }
               case "" -> MessageSenderService.sendMessage(LocalizationService.getMessage("empty"));
-              default -> MessageSenderService.sendMessage(LocalizationService.getMessage("invalid_command"));
+              default -> throw new UserInputException(ErrorCode.UNKNOWN_COMMAND, cmd);
           }
       } catch (MegiaException e) {
-          MessageSenderService.sendMessage(LocalizationService.getException(e.getMessage()));
+          MessageSenderService.sendMessage(LocalizationService.getException(
+                  e.getErrorCode(), e.getMessageArguments()));
+      } catch (RuntimeException e) {
+          System.err.println("Unexpected application error: " + e.getMessage());
+          MessageSenderService.sendMessage(LocalizationService.getMessage("unexpected_error"));
       }
   }
   userInput.close();
