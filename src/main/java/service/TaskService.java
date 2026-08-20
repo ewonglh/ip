@@ -1,5 +1,6 @@
 package service;
 
+import exception.TaskNotFoundException;
 import model.Task;
 import model.TaskStorage;
 
@@ -34,7 +35,7 @@ public class TaskService {
      * @param taskId one-based task ID
      * @return the updated task
      */
-    public Task markTask(int taskId) {
+    public Task markTask(int taskId) throws TaskNotFoundException {
         Task task = getTask(taskId);
         task.markAsDone();
         return task;
@@ -46,7 +47,7 @@ public class TaskService {
      * @param taskId one-based task ID
      * @return the updated task
      */
-    public Task unmarkTask(int taskId) {
+    public Task unmarkTask(int taskId) throws TaskNotFoundException {
         Task task = getTask(taskId);
         task.markAsNotDone();
         return task;
@@ -58,7 +59,10 @@ public class TaskService {
      * @param taskId one-based task ID
      * @return the matching task
      */
-    public Task getTask(int taskId) {
+    public Task getTask(int taskId) throws TaskNotFoundException {
+        if (!taskStorage.isValidTaskId(taskId)) {
+            throw new TaskNotFoundException("invalid_task_type");
+        }
         return taskStorage.getTaskById(taskId);
     }
 

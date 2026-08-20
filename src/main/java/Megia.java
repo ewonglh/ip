@@ -1,3 +1,4 @@
+import exception.MegiaException;
 import model.Task;
 import model.TaskStorage;
 import service.LocalizationService;
@@ -54,27 +55,22 @@ void main() {
                                           taskService.getTaskCount()));
               }
               case "mark", "unmark" -> {
-                  try {
-                      int taskId = Integer.parseInt(body.trim());
-                      Task task = cmd.equals("mark")
-                              ? taskService.markTask(taskId)
-                              : taskService.unmarkTask(taskId);
-                      String messageKey = cmd.equals("mark")
-                              ? "task_storage_mark"
-                              : "task_storage_unmark";
+                  int taskId = taskParser.parseTaskId(body.trim());
+                  Task task = cmd.equals("mark")
+                          ? taskService.markTask(taskId)
+                          : taskService.unmarkTask(taskId);
+                  String messageKey = cmd.equals("mark")
+                          ? "task_storage_mark"
+                          : "task_storage_unmark";
 
-                      MessageSenderService.sendMessage(
-                              LocalizationService.getMessage(messageKey) + "\n" + task);
-                  } catch (IllegalArgumentException e) {
-                      MessageSenderService.sendMessage(
-                              LocalizationService.getMessage("task_invalid_id"));
-                  }
+                  MessageSenderService.sendMessage(
+                          LocalizationService.getMessage(messageKey) + "\n" + task);
               }
               case "" -> MessageSenderService.sendMessage(LocalizationService.getMessage("empty"));
               default -> MessageSenderService.sendMessage(LocalizationService.getMessage("invalid_command"));
           }
-      } catch (Exception e) {
-          MessageSenderService.sendMessage(e.getMessage());
+      } catch (MegiaException e) {
+          MessageSenderService.sendMessage(LocalizationService.getException(e.getMessage()));
       }
   }
   userInput.close();

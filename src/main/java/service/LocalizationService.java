@@ -12,6 +12,13 @@ public class LocalizationService {
             Locale.of(prop.getProperty("language"))
     );
 
+    private static final ResourceBundle exceptions = ResourceBundle.getBundle(
+            "i18n.exceptions.exceptions",
+            Locale.of(prop.getProperty("language"))
+    );
+
+    public static String getException(String key) { return exceptions.getString(key); }
+
     public static String getMessage(String key) {
         return messages.getString(key);
     }
