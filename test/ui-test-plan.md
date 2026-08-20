@@ -403,7 +403,7 @@ bye
 ### Expected output
 
 ```text
-"remember" is not a recognized command. Available commands: todo, deadline, event, list, mark, unmark, bye.
+"remember" is not a recognized command. Available commands: todo, deadline, event, list, mark, unmark, delete, bye.
 ```
 
 ## Test case 23: Accept trailing arguments for list and bye
@@ -448,4 +448,104 @@ Got it. I've added this task:
   [T][ ] temporary task
 Now you have 1 tasks in the list.
 You didn't enter a command. Try "list" to view your tasks.
+```
+
+## Test case 25: Delete a task and reindex the list
+
+- Aim: Verify that deleting a middle task returns it and reindexes the remaining tasks.
+
+### Inputs
+
+```text
+todo read book
+deadline return book /by Friday
+event project meeting /from 2pm /to 4pm
+delete 2
+list
+bye
+```
+
+### Expected output
+
+```text
+Got it. I've added this task:
+  [T][ ] read book
+Now you have 1 tasks in the list.
+Got it. I've added this task:
+  [D][ ] return book (by: Friday)
+Now you have 2 tasks in the list.
+Got it. I've added this task:
+  [E][ ] project meeting (from: 2pm to: 4pm)
+Now you have 3 tasks in the list.
+I've removed this task:
+[D][ ] return book (by: Friday)
+Here's your tasks:
+1.[T][ ] read book
+2.[E][ ] project meeting (from: 2pm to: 4pm)
+```
+
+## Test case 26: Delete the final task
+
+- Aim: Verify that deleting the only task leaves an empty task list.
+
+### Inputs
+
+```text
+todo only task
+delete 1
+list
+bye
+```
+
+### Expected output
+
+```text
+Got it. I've added this task:
+  [T][ ] only task
+Now you have 1 tasks in the list.
+I've removed this task:
+[T][ ] only task
+You have no tasks.
+```
+
+## Test case 27: Reject malformed delete IDs
+
+- Aim: Verify that missing and nonnumeric delete IDs provide corrective guidance.
+
+### Inputs
+
+```text
+delete
+delete abc
+bye
+```
+
+### Expected output
+
+```text
+Enter the task number to delete. Try: delete 1
+"abc" is not a valid task number. Enter a positive whole number.
+```
+
+## Test case 28: Reject unavailable delete IDs
+
+- Aim: Verify that deletion distinguishes an empty list from an out-of-range task ID.
+
+### Inputs
+
+```text
+delete 1
+todo first task
+delete 2
+bye
+```
+
+### Expected output
+
+```text
+There are no tasks to delete. Add one first, for example: todo borrow a book
+Got it. I've added this task:
+  [T][ ] first task
+Now you have 1 tasks in the list.
+Task 2 does not exist. Choose a number from 1 to 1, or use "list" to view your tasks.
 ```

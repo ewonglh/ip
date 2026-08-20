@@ -22,6 +22,7 @@ input.
 | `list` | `list` |
 | `mark <task number>` | `mark 1` |
 | `unmark <task number>` | `unmark 1` |
+| `delete <task number>` | `delete 1` |
 | `bye` | `bye` |
 
 Dates and times are stored as free-form text. Trailing arguments supplied to
@@ -69,8 +70,8 @@ Use `en` for English or `cn` for Chinese. If the configuration cannot be
 loaded, Megia falls back to English.
 
 ## AI use declaration
-
-I used Codex to discuss the error-handling architecture, plan the increment,
-implement structured and localized error handling, identify edge cases, and
-expand the console UI tests. I reviewed the generated changes and verified
-them using the project's Java 25 test runner.
+- Coding harness/agent: Codex CLI
+- Used to discuss error-planning architecture and plan increment Level-5
+  - Used to review and suggest improvements to iterate on Level-5 requirements
+- Used to review and tweak JavaDoc comments
+- Used to expand the console UI tests with `test-ui` skill
