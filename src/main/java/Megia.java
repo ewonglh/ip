@@ -27,7 +27,7 @@ void main() {
   while (!end) {
       try {
           IO.print("> ");
-          rawInput = userInput.nextLine();
+          rawInput = userInput.hasNextLine() ? userInput.nextLine() : "";
           String trimmedInput = rawInput.strip();
           if (trimmedInput.isEmpty()) {
               cmd = "";
