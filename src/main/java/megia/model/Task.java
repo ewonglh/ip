@@ -13,8 +13,18 @@ public class Task {
      * @param description Description of the task.
      */
     public Task(String description) {
+        this(description, false);
+    }
+
+    /**
+     * Creates an task with the specified description and completion status.
+     *
+     * @param description Description of the task.
+     * @param isDone Completion status of the task.
+     */
+    public Task(String description, boolean isDone) {
         this.description = description;
-        this.isDone = false;
+        this.isDone = isDone;
     }
 
     /**
@@ -35,6 +45,8 @@ public class Task {
     public String toString() {
         return String.format("[%c] %s", (isDone ? 'X' : ' '), description);
     }
+
+    public String encode() { return String.format("%s,%s", isDone, description); }
 
     /**
      * Returns whether this task has been completed.

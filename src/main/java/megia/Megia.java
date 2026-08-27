@@ -1,5 +1,6 @@
 package megia;
 
+import java.util.Properties;
 import java.util.Scanner;
 
 import megia.exception.ErrorCode;
@@ -7,15 +8,13 @@ import megia.exception.MegiaException;
 import megia.exception.UserInputException;
 import megia.model.Task;
 import megia.model.TaskStorage;
-import megia.service.LocalizationService;
-import megia.service.MessageSenderService;
-import megia.service.TaskParser;
-import megia.service.TaskService;
+import megia.service.*;
 
 /**
  * Starts the Megia command-line task manager and handles its console interaction loop.
  */
 public final class Megia {
+    private static final Properties PROPERTIES = PropertiesService.getProperties();
     private static final String BANNER = """
             /\\ "-./  \\   /\\  ___\\   /\\  ___\\   /\\ \\   /\\  __ \\
             \\ \\ \\-./\\ \\  \\ \\  __\\   \\ \\ \\__‾\\  \\ \\ \\  \\ \\  __ \\
@@ -32,7 +31,8 @@ public final class Megia {
      * @param arguments Command-line arguments, which Megia does not currently use.
      */
     public static void main(String[] arguments) {
-        TaskStorage taskStorage = new TaskStorage();
+        TaskStorage taskStorage = LocalStorageService.loadTaskData(PROPERTIES.getProperty("storage.task.path"))
+                .orElse(new TaskStorage());
         TaskService taskService = new TaskService(taskStorage);
         TaskParser taskParser = new TaskParser();
         Scanner userInput = new Scanner(System.in);
@@ -105,5 +105,6 @@ public final class Megia {
 
         userInput.close();
         MessageSenderService.sendMessage(LocalizationService.getMessage("farewell"));
+        LocalStorageService.saveTaskData(taskStorage,  PROPERTIES.getProperty("storage.task.path"));
     }
 }

@@ -1,5 +1,6 @@
 package megia.model;
 
+import java.util.Iterator;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -8,7 +9,7 @@ import megia.service.LocalizationService;
 /**
  * Stores tasks and resolves their one-based user-facing IDs.
  */
-public class TaskStorage extends Storage<Task> {
+public class TaskStorage extends Storage<Task> implements Iterable<Task> {
     /**
      * Creates an empty task collection.
      */
@@ -83,5 +84,10 @@ public class TaskStorage extends Storage<Task> {
                                 .mapToObj(i -> (i + 1) + "." + items.get(i) + "\n")
                                 .collect(Collectors.joining())
                                 .strip();
+    }
+
+    @Override
+    public Iterator<Task> iterator() {
+        return items.iterator();
     }
 }
