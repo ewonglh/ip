@@ -6,28 +6,45 @@ import megia.exception.UserInputException;
 import megia.model.ParsedCommand;
 import megia.model.Task;
 import megia.model.TaskStorage;
-import megia.service.*;
+import megia.service.LocalStorageService;
+import megia.service.LocalizationService;
+import megia.service.PropertiesService;
+import megia.service.TaskParser;
+import megia.ui.ConsoleUi;
 
+import java.util.Optional;
 import java.util.Properties;
-import java.util.Scanner;
 
 /**
- * Starts the Megia commandName-line task manager and handles its console interaction loop.
+ * Coordinates the Megia command-line task manager.
  */
 public final class Megia {
     private static final Properties PROPERTIES = PropertiesService.getProperties();
-    private static final String BANNER = """
-            /\\ "-./  \\   /\\  ___\\   /\\  ___\\   /\\ \\   /\\  __ \\
-            \\ \\ \\-./\\ \\  \\ \\  __\\   \\ \\ \\__‾\\  \\ \\ \\  \\ \\  __ \\
-            \\ \\_\\ \\ \\_\\  \\ \\_____\\  \\ \\_____\\  \\ \\_\\  \\ \\_\\ \\_\\
-            \\/_/  \\/_/   \\/_____/   \\/_____/   \\/_/   \\/_/\\/_/
-            """.stripTrailing() + "\n\n";
 
-    private Megia() {
+    private final ConsoleUi ui;
+    private final LocalStorageService localStorageService;
+    private final TaskStorage taskStorage;
+    private final TaskParser taskParser;
+
+    /**
+     * Creates an application using the supplied UI, local storage, and task collection.
+     *
+     * @param ui Console interface used to interact with the user.
+     * @param localStorageService Storage used to persist tasks.
+     * @param taskStorage Task collection managed by the application.
+     */
+    public Megia(
+            ConsoleUi ui,
+            LocalStorageService localStorageService,
+            TaskStorage taskStorage) {
+        this.ui = ui;
+        this.localStorageService = localStorageService;
+        this.taskStorage = taskStorage;
+        this.taskParser = new TaskParser();
     }
 
     /**
-     * Runs the commandName-line application until the user exits or the input stream closes.
+     * Starts the command-line application using the configured storage and system console.
      *
      * @param arguments Command-line arguments, which Megia does not currently use.
      */
@@ -35,31 +52,38 @@ public final class Megia {
         LocalStorageService localStorageService = new LocalStorageService(PROPERTIES.getProperty("storage.task.path"));
         TaskStorage taskStorage = localStorageService.loadTaskData()
                 .orElse(new TaskStorage());
-        TaskParser taskParser = new TaskParser();
-        Scanner userInput = new Scanner(System.in);
+
+        try (ConsoleUi ui = new ConsoleUi()) {
+            Megia megia = new Megia(ui, localStorageService, taskStorage);
+            megia.run();
+        }
+    }
+
+    /**
+     * Runs the application until the user exits or the input stream closes.
+     */
+    public void run() {
         boolean shouldExit = false;
 
-        MessageSenderService.sendGreeting(BANNER
-                + LocalizationService.getMessage("greeting"));
+        ui.showGreeting();
 
         while (!shouldExit) {
             try {
-                System.out.print("> ");
-                if (!userInput.hasNextLine()) {
+                Optional<String> rawInput = ui.readCommand();
+                if (rawInput.isEmpty()) {
                     break;
                 }
 
-                String rawInput = userInput.nextLine();
-                ParsedCommand command = taskParser.parseCommand(rawInput);
+                ParsedCommand command = taskParser.parseCommand(rawInput.get());
 
                 switch (command.commandName()) {
-                    case "list" -> MessageSenderService.sendMessage(taskStorage.toString());
+                    case "list" -> ui.showMessage(taskStorage.toString());
                     case "bye" -> shouldExit = true;
                     case "todo", "deadline", "event" -> {
                         Task newTask = taskParser.parseNewTask(command);
                         taskStorage.addTask(newTask);
 
-                        MessageSenderService.sendMessage(
+                        ui.showMessage(
                                 LocalizationService.getMessage("task_storage_add")
                                         + "\n"
                                         + "  " + newTask
@@ -78,26 +102,22 @@ public final class Megia {
                         };
                         String messageKey = "task_storage_" + command.commandName();
 
-                        MessageSenderService.sendMessage(
+                        ui.showMessage(
                                 LocalizationService.getMessage(messageKey) + "\n" + task);
                         localStorageService.saveTaskData(taskStorage);
                     }
-                    case "" -> MessageSenderService.sendMessage(
+                    case "" -> ui.showMessage(
                             LocalizationService.getMessage("empty"));
-                    default -> throw new UserInputException(ErrorCode.UNKNOWN_COMMAND, command);
+                    default -> throw new UserInputException(ErrorCode.UNKNOWN_COMMAND, command.commandName());
                 }
             } catch (MegiaException exception) {
-                MessageSenderService.sendMessage(LocalizationService.getException(
-                        exception.getErrorCode(), exception.getMessageArguments()));
+                ui.showError(exception);
             } catch (RuntimeException exception) {
-                System.err.println("Unexpected application error: " + exception.getMessage());
-                MessageSenderService.sendMessage(
-                        LocalizationService.getMessage("unexpected_error"));
+                ui.showUnexpectedError(exception);
             }
         }
 
-        userInput.close();
-        MessageSenderService.sendMessage(LocalizationService.getMessage("farewell"));
+        ui.showFarewell();
         localStorageService.saveTaskData(taskStorage);
     }
 }
