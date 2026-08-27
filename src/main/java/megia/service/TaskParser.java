@@ -1,14 +1,14 @@
-package service;
-
-import exception.ErrorCode;
-import exception.UserInputException;
-import model.Deadline;
-import model.Event;
-import model.Task;
-import model.ToDo;
+package megia.service;
 
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import megia.exception.ErrorCode;
+import megia.exception.UserInputException;
+import megia.model.Deadline;
+import megia.model.Event;
+import megia.model.Task;
+import megia.model.Todo;
 
 /**
  * Converts task command bodies into the corresponding task objects.
@@ -16,37 +16,42 @@ import java.util.regex.Pattern;
  * date/time calculations.
  */
 public final class TaskParser {
+    private static final String MARKER_BY = "/by";
+    private static final String MARKER_FROM = "/from";
+    private static final String MARKER_TO = "/to";
+    private static final Pattern MARKER_BY_PATTERN = markerPattern(MARKER_BY);
+    private static final Pattern MARKER_FROM_PATTERN = markerPattern(MARKER_FROM);
+    private static final Pattern MARKER_TO_PATTERN = markerPattern(MARKER_TO);
 
-    private static final String BY_MARKER = "/by";
-    private static final String FROM_MARKER = "/from";
-    private static final String TO_MARKER = "/to";
-    private static final Pattern BY_MARKER_PATTERN = markerPattern(BY_MARKER);
-    private static final Pattern FROM_MARKER_PATTERN = markerPattern(FROM_MARKER);
-    private static final Pattern TO_MARKER_PATTERN = markerPattern(TO_MARKER);
+    /**
+     * Creates a parser for task commands.
+     */
+    public TaskParser() {
+    }
 
     /**
      * Parses the body of a task command.
      *
-     * @param command task command, such as {@code todo} or {@code event}
-     * @param body input after the command name
-     * @return the parsed task
-     * @throws UserInputException if the body does not follow the command syntax
+     * @param command Task command, such as {@code todo} or {@code event}.
+     * @param body Input after the command name.
+     * @return Parsed task.
+     * @throws UserInputException If the body does not follow the command syntax.
      */
     public Task parse(String command, String body) throws UserInputException {
         return switch (command) {
             case "deadline" -> parseDeadline(body);
             case "event" -> parseEvent(body);
-            default -> parseToDo(body);
+            default -> parseTodo(body);
         };
     }
 
     /**
      * Parses and validates a positive, one-based task ID.
      *
-     * @param body input after the command name
-     * @param command command that needs the ID, such as {@code mark}
-     * @return the parsed task ID
-     * @throws UserInputException if the ID is missing or invalid
+     * @param body Input after the command name.
+     * @param command Command that needs the ID, such as {@code mark}.
+     * @return Parsed task ID.
+     * @throws UserInputException If the ID is missing or invalid.
      */
     public int parseTaskId(String body, String command) throws UserInputException {
         String taskIdText = body.strip();
@@ -66,17 +71,17 @@ public final class TaskParser {
                 throw new UserInputException(ErrorCode.TASK_ID_NOT_POSITIVE);
             }
             return taskId;
-        } catch (NumberFormatException e) {
+        } catch (NumberFormatException exception) {
             throw new UserInputException(ErrorCode.TASK_ID_TOO_LARGE, taskIdText);
         }
     }
 
-    private ToDo parseToDo(String body) throws UserInputException {
-        body = body.trim();
-        if (body.isBlank()) {
+    private Todo parseTodo(String body) throws UserInputException {
+        String description = body.trim();
+        if (description.isBlank()) {
             throw new UserInputException(ErrorCode.TODO_DESCRIPTION_MISSING);
         }
-        return new ToDo(body);
+        return new Todo(description);
     }
 
     /**
@@ -84,20 +89,20 @@ public final class TaskParser {
      */
     private Deadline parseDeadline(String body) throws UserInputException {
         MarkerLocation byMarker = findSingleMarker(
-                body, BY_MARKER_PATTERN, BY_MARKER, ErrorCode.DEADLINE_BY_MARKER_MISSING);
+                body, MARKER_BY_PATTERN, MARKER_BY, ErrorCode.DEADLINE_BY_MARKER_MISSING);
 
         String description = body.substring(0, byMarker.start()).strip();
-        String by = body.substring(byMarker.end()).strip();
+        String deadline = body.substring(byMarker.end()).strip();
 
         if (description.isBlank()) {
             throw new UserInputException(ErrorCode.DEADLINE_DESCRIPTION_MISSING);
         }
 
-        if (by.isBlank()) {
+        if (deadline.isBlank()) {
             throw new UserInputException(ErrorCode.DEADLINE_BY_VALUE_MISSING);
         }
 
-        return new Deadline(description, by);
+        return new Deadline(description, deadline);
     }
 
     /**
@@ -105,31 +110,31 @@ public final class TaskParser {
      */
     private Event parseEvent(String body) throws UserInputException {
         MarkerLocation fromMarker = findSingleMarker(
-                body, FROM_MARKER_PATTERN, FROM_MARKER, ErrorCode.EVENT_FROM_MARKER_MISSING);
+                body, MARKER_FROM_PATTERN, MARKER_FROM, ErrorCode.EVENT_FROM_MARKER_MISSING);
         MarkerLocation toMarker = findSingleMarker(
-                body, TO_MARKER_PATTERN, TO_MARKER, ErrorCode.EVENT_TO_MARKER_MISSING);
+                body, MARKER_TO_PATTERN, MARKER_TO, ErrorCode.EVENT_TO_MARKER_MISSING);
 
         if (fromMarker.start() > toMarker.start()) {
             throw new UserInputException(ErrorCode.EVENT_MARKERS_OUT_OF_ORDER);
         }
 
         String description = body.substring(0, fromMarker.start()).strip();
-        String from = body.substring(fromMarker.end(), toMarker.start()).strip();
-        String to = body.substring(toMarker.end()).strip();
+        String startTime = body.substring(fromMarker.end(), toMarker.start()).strip();
+        String endTime = body.substring(toMarker.end()).strip();
 
         if (description.isBlank()) {
             throw new UserInputException(ErrorCode.EVENT_DESCRIPTION_MISSING);
         }
 
-        if (from.isBlank()) {
+        if (startTime.isBlank()) {
             throw new UserInputException(ErrorCode.EVENT_FROM_VALUE_MISSING);
         }
 
-        if (to.isBlank()) {
+        if (endTime.isBlank()) {
             throw new UserInputException(ErrorCode.EVENT_TO_VALUE_MISSING);
         }
 
-        return new Event(description, from, to);
+        return new Event(description, startTime, endTime);
     }
 
     /**
@@ -139,8 +144,7 @@ public final class TaskParser {
             String body,
             Pattern pattern,
             String marker,
-            ErrorCode missingMarkerError
-    ) throws UserInputException {
+            ErrorCode missingMarkerError) throws UserInputException {
         Matcher matcher = pattern.matcher(body);
         if (!matcher.find()) {
             throw new UserInputException(missingMarkerError);

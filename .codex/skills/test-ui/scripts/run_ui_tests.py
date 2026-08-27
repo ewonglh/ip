@@ -183,7 +183,7 @@ def run_case(
     classpath = os.pathsep.join((str(build_dir), str(resources)))
     try:
         result = subprocess.run(
-            ["java", "-cp", classpath, "Megia"],
+            ["java", "-cp", classpath, "megia.Megia"],
             cwd=project_root,
             input=case.inputs.rstrip("\n") + "\n",
             text=True,
