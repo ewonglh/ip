@@ -35,5 +35,7 @@ For every Java code change or review, load and follow `.codex/skills/seedu-java-
 ## Git
 
 Use lightweight tags unless the user requests an annotated tag.
-When proposing or creating a commit message, include enough detail to explain the rationale for the change.
+For every commit, commit-message proposal or review, and branch-name proposal or
+creation, load and follow `.codex/skills/seedu-git-standard/SKILL.md`. Treat the skill
+as mandatory. Before committing or handing off Git wording, audit it against the skill.
 Do not commit or push unless explicitly asked.
