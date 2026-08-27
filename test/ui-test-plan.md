@@ -1,6 +1,6 @@
 # UI Test Plan
 
-The test-ui skill runs each test case in a fresh process. Include bye as the final input in every case so the application exits cleanly.
+The test-ui skill gives each test case isolated storage. Each session runs in a fresh process, while numbered sessions in the same test case share that storage. Include `bye` as the final input in every session so the application exits cleanly.
 
 ## Test case 1: Add a todo
 
@@ -548,4 +548,50 @@ Got it. I've added this task:
   [T][ ] first task
 Now you have 1 tasks in the list.
 Task 2 does not exist. Choose a number from 1 to 1, or use "list" to view your tasks.
+```
+
+## Test case 29: Persist tasks across restarts
+
+- Aim: Verify that task types, order, and completion status survive an application restart.
+
+### Inputs (session 1)
+
+```text
+todo read book
+deadline return book /by Friday 5pm
+event project meeting /from Monday 2pm /to 4pm
+mark 1
+bye
+```
+
+### Expected output (session 1)
+
+```text
+Got it. I've added this task:
+  [T][ ] read book
+Now you have 1 tasks in the list.
+Got it. I've added this task:
+  [D][ ] return book (by: Friday 5pm)
+Now you have 2 tasks in the list.
+Got it. I've added this task:
+  [E][ ] project meeting (from: Monday 2pm to: 4pm)
+Now you have 3 tasks in the list.
+Nice! I've marked this task as done:
+[T][X] read book
+```
+
+### Inputs (session 2)
+
+```text
+list
+bye
+```
+
+### Expected output (session 2)
+
+```text
+Here's your tasks:
+1.[T][X] read book
+2.[D][ ] return book (by: Friday 5pm)
+3.[E][ ] project meeting (from: Monday 2pm to: 4pm)
 ```

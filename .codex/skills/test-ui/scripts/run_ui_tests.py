@@ -20,18 +20,26 @@ CASE_HEADING = re.compile(
 )
 AIM_LINE = re.compile(r"^\s*-\s*Aim:\s*(.+?)\s*$", re.IGNORECASE)
 SECTION_HEADING = re.compile(
-    r"^###\s+(Inputs?|Expected output)\s*$", re.IGNORECASE
+    r"^###\s+(Inputs?|Expected output)(?:\s+\(session\s+(\d+)\))?\s*$",
+    re.IGNORECASE,
 )
 
 
 @dataclass(frozen=True)
+class TestSession:
+    """One application process within a UI test case."""
+
+    inputs: str
+    expected: str
+
+
+@dataclass(frozen=True)
 class TestCase:
-    """One UI test case parsed from the project test plan."""
+    """One isolated UI test case containing one or more processes."""
 
     name: str
     aim: str
-    inputs: str
-    expected: str
+    sessions: tuple[TestSession, ...]
 
 
 @dataclass(frozen=True)
@@ -88,29 +96,85 @@ def parse_plan(plan_path: Path) -> list[TestCase]:
         if not aim:
             raise ValueError(f"Test case '{name}' is missing an Aim line")
 
-        section_positions = {
-            match.group(1).lower(): index
+        section_headings = [
+            (
+                index,
+                "inputs"
+                if match.group(1).lower().startswith("input")
+                else "expected output",
+                int(match.group(2)) if match.group(2) else None,
+            )
             for index, line in enumerate(section)
             if (match := SECTION_HEADING.match(line))
-        }
-        if "inputs" not in section_positions or "expected output" not in section_positions:
+        ]
+        if not section_headings:
             raise ValueError(
                 f"Test case '{name}' must contain Inputs and Expected output sections"
             )
 
-        inputs = extract_fenced_block(
-            section, section_positions["inputs"], "Inputs"
+        has_numbered_sections = any(
+            session_number is not None
+            for _, _, session_number in section_headings
         )
-        expected = extract_fenced_block(
-            section, section_positions["expected output"], "Expected output"
+        has_unnumbered_sections = any(
+            session_number is None
+            for _, _, session_number in section_headings
         )
-        input_lines = [line for line in inputs.splitlines() if line.strip()]
-        if not input_lines or input_lines[-1].strip() != "bye":
+        if has_numbered_sections and has_unnumbered_sections:
             raise ValueError(
-                f"Test case '{name}' must end its Inputs block with 'bye'"
+                f"Test case '{name}' cannot mix numbered and unnumbered sessions"
             )
 
-        cases.append(TestCase(name=name, aim=aim, inputs=inputs, expected=expected))
+        session_positions: dict[int, dict[str, int]] = {}
+        for position, label, session_number in section_headings:
+            number = session_number or 1
+            positions = session_positions.setdefault(number, {})
+            if label in positions:
+                raise ValueError(
+                    f"Test case '{name}' has duplicate {label} sections "
+                    f"for session {number}"
+                )
+            positions[label] = position
+
+        session_numbers = sorted(session_positions)
+        expected_numbers = list(range(1, len(session_numbers) + 1))
+        if session_numbers != expected_numbers:
+            raise ValueError(
+                f"Test case '{name}' session numbers must start at 1 "
+                "and be consecutive"
+            )
+
+        sessions: list[TestSession] = []
+        for session_number in session_numbers:
+            positions = session_positions[session_number]
+            if "inputs" not in positions or "expected output" not in positions:
+                raise ValueError(
+                    f"Test case '{name}' session {session_number} must contain "
+                    "Inputs and Expected output sections"
+                )
+
+            inputs = extract_fenced_block(
+                section,
+                positions["inputs"],
+                f"Inputs (session {session_number})",
+            )
+            expected = extract_fenced_block(
+                section,
+                positions["expected output"],
+                f"Expected output (session {session_number})",
+            )
+            input_lines = [line for line in inputs.splitlines() if line.strip()]
+            if not input_lines or input_lines[-1].strip() != "bye":
+                raise ValueError(
+                    f"Test case '{name}' session {session_number} "
+                    "must end its Inputs block with 'bye'"
+                )
+
+            sessions.append(TestSession(inputs=inputs, expected=expected))
+
+        cases.append(
+            TestCase(name=name, aim=aim, sessions=tuple(sessions))
+        )
     return cases
 
 
@@ -175,17 +239,21 @@ def compile_project(project_root: Path, build_dir: Path) -> None:
         raise RuntimeError("Java 25 compilation failed:\n" + result.stdout)
 
 
-def run_case(
-    project_root: Path, build_dir: Path, case: TestCase, timeout: float
+def run_session(
+    project_root: Path,
+    build_dir: Path,
+    working_dir: Path,
+    session: TestSession,
+    timeout: float,
 ) -> RunResult:
-    """Run one test case in a fresh Java process and return its output."""
+    """Run one test session in a fresh Java process and return its output."""
     resources = project_root / "src" / "main" / "resources"
     classpath = os.pathsep.join((str(build_dir), str(resources)))
     try:
         result = subprocess.run(
             ["java", "-cp", classpath, "megia.Megia"],
-            cwd=project_root,
-            input=case.inputs.rstrip("\n") + "\n",
+            cwd=working_dir,
+            input=session.inputs.rstrip("\n") + "\n",
             text=True,
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
@@ -214,10 +282,20 @@ def run_case(
     )
 
 
-def print_case_record(case: TestCase, actual: str) -> None:
-    """Print the input and captured output for one test case."""
-    print(f"Console input ({case.name}):")
-    print(case.inputs)
+def print_session_record(
+    case: TestCase,
+    session_number: int,
+    session: TestSession,
+    actual: str,
+) -> None:
+    """Print the input and captured output for one test session."""
+    session_label = (
+        case.name
+        if len(case.sessions) == 1
+        else f"{case.name}, session {session_number}"
+    )
+    print(f"Console input ({session_label}):")
+    print(session.inputs)
     print("Console output:")
     print(display_output(actual))
 
@@ -240,27 +318,67 @@ def main() -> int:
 
             print(f"UI test session: {plan_path}")
             for number, case in enumerate(cases, start=1):
-                run_result = run_case(project_root, build_dir, case, args.timeout)
-                actual = run_result.output
-                actual_normalized = normalized_output(actual)
-                expected_normalized = normalized_output(case.expected)
+                with tempfile.TemporaryDirectory(
+                    prefix=f"test-ui-case-{number}-"
+                ) as working_path:
+                    session_records: list[tuple[TestSession, str]] = []
+                    for session_number, session in enumerate(
+                        case.sessions, start=1
+                    ):
+                        run_result = run_session(
+                            project_root,
+                            build_dir,
+                            Path(working_path),
+                            session,
+                            args.timeout,
+                        )
+                        actual = run_result.output
+                        actual_normalized = normalized_output(actual)
+                        expected_normalized = normalized_output(session.expected)
 
-                if run_result.error or actual_normalized != expected_normalized:
-                    print(f"\nFAIL {number}: {case.name}")
-                    print(f"Aim: {case.aim}")
-                    print_case_record(case, actual)
-                    if run_result.error:
-                        print(f"Process error: {run_result.error}")
-                    print("Actual output (normalized):")
-                    print(actual_normalized or "(empty)")
-                    print("Expected output:")
-                    print(expected_normalized or "(empty)")
-                    print("\nStopping the UI test session after the first failure.")
-                    return 1
+                        if (
+                            run_result.error
+                            or actual_normalized != expected_normalized
+                        ):
+                            session_suffix = (
+                                ""
+                                if len(case.sessions) == 1
+                                else f" (session {session_number})"
+                            )
+                            print(
+                                f"\nFAIL {number}: {case.name}{session_suffix}"
+                            )
+                            print(f"Aim: {case.aim}")
+                            print_session_record(
+                                case,
+                                session_number,
+                                session,
+                                actual,
+                            )
+                            if run_result.error:
+                                print(f"Process error: {run_result.error}")
+                            print("Actual output (normalized):")
+                            print(actual_normalized or "(empty)")
+                            print("Expected output:")
+                            print(expected_normalized or "(empty)")
+                            print(
+                                "\nStopping the UI test session after the first failure."
+                            )
+                            return 1
+
+                        session_records.append((session, actual))
 
                 print(f"\nPASS {number}: {case.name}")
                 print(f"Aim: {case.aim}")
-                print_case_record(case, actual)
+                for session_number, (session, actual) in enumerate(
+                    session_records, start=1
+                ):
+                    print_session_record(
+                        case,
+                        session_number,
+                        session,
+                        actual,
+                    )
 
             print(f"\nAll {len(cases)} UI test case(s) passed.")
             return 0
