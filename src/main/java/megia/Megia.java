@@ -34,7 +34,6 @@ public final class Megia {
         LocalStorageService localStorageService = new LocalStorageService(PROPERTIES.getProperty("storage.task.path"));
         TaskStorage taskStorage = localStorageService.loadTaskData()
                 .orElse(new TaskStorage());
-        TaskService taskService = new TaskService(taskStorage);
         TaskParser taskParser = new TaskParser();
         Scanner userInput = new Scanner(System.in);
         boolean shouldExit = false;
@@ -67,7 +66,7 @@ public final class Megia {
                     case "bye" -> shouldExit = true;
                     case "todo", "deadline", "event" -> {
                         Task newTask = taskParser.parse(command, body);
-                        taskService.addTask(newTask);
+                        taskStorage.addTask(newTask);
 
                         MessageSenderService.sendMessage(
                                 LocalizationService.getMessage("task_storage_add")
@@ -76,15 +75,15 @@ public final class Megia {
                                         + "\n"
                                         + String.format(
                                                 LocalizationService.getMessage("task_storage_add_2"),
-                                                taskService.getTaskCount()));
+                                                taskStorage.getTaskCount()));
                         localStorageService.saveTaskData(taskStorage);
                     }
                     case "mark", "unmark", "delete" -> {
                         int taskId = taskParser.parseTaskId(body, command);
                         Task task = switch (command) {
-                            case "mark" -> taskService.markTask(taskId);
-                            case "unmark" -> taskService.unmarkTask(taskId);
-                            default -> taskService.deleteTask(taskId);
+                            case "mark" -> taskStorage.markTask(taskId);
+                            case "unmark" -> taskStorage.unmarkTask(taskId);
+                            default -> taskStorage.deleteTask(taskId);
                         };
                         String messageKey = "task_storage_" + command;
 

@@ -10,10 +10,12 @@ import java.util.Optional;
  * Task text is assumed not to contain commas until the storage format supports escaping.
  */
 public final class LocalStorageService {
-    String taskStoragePath;
+    private final String taskStoragePath;
+
     /**
-     * Creates an instance of the stateless local storage service.
-     * @param path The path for the task storage
+     * Creates a local storage service that uses the specified task file.
+     *
+     * @param path Path to the task storage file.
      */
     public LocalStorageService(String path) {
         this.taskStoragePath = path;
@@ -27,14 +29,13 @@ public final class LocalStorageService {
     public Optional<TaskStorage> loadTaskData() {
         String line;
         TaskStorage taskStorage = new TaskStorage();
-        TaskService taskService = new TaskService(taskStorage);
 
-        try (BufferedReader br = new BufferedReader(new FileReader(taskStoragePath))) {
-            while ((line = br.readLine()) != null) {
+        try (BufferedReader reader = new BufferedReader(new FileReader(taskStoragePath))) {
+            while ((line = reader.readLine()) != null) {
                 String[] fields = line.strip().split(",");
                 TaskType taskType = TaskType.valueOf(fields[0]);
                 Task task = getTaskFromLine(fields, taskType);
-                taskService.addTask(task);
+                taskStorage.addTask(task);
             }
         } catch (IOException e) {
             return Optional.empty();
@@ -77,11 +78,10 @@ public final class LocalStorageService {
         for (Task task : taskStorage) {
             out.append(task.encode()).append("\n");
         }
-        try (BufferedWriter bw = new BufferedWriter(new FileWriter(taskStoragePath))) {
-            bw.write(out.toString().strip());
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter(taskStoragePath))) {
+            writer.write(out.toString().strip());
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
     }
-
 }
