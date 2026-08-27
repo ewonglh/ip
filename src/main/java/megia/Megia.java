@@ -1,19 +1,14 @@
 package megia;
 
-import java.util.Properties;
-import java.util.Scanner;
-
 import megia.exception.ErrorCode;
 import megia.exception.MegiaException;
 import megia.exception.UserInputException;
 import megia.model.Task;
 import megia.model.TaskStorage;
-import megia.service.LocalStorageService;
-import megia.service.LocalizationService;
-import megia.service.MessageSenderService;
-import megia.service.PropertiesService;
-import megia.service.TaskParser;
-import megia.service.TaskService;
+import megia.service.*;
+
+import java.util.Properties;
+import java.util.Scanner;
 
 /**
  * Starts the Megia command-line task manager and handles its console interaction loop.
@@ -36,7 +31,8 @@ public final class Megia {
      * @param arguments Command-line arguments, which Megia does not currently use.
      */
     public static void main(String[] arguments) {
-        TaskStorage taskStorage = LocalStorageService.loadTaskData(PROPERTIES.getProperty("storage.task.path"))
+        LocalStorageService localStorageService = new LocalStorageService(PROPERTIES.getProperty("storage.task.path"));
+        TaskStorage taskStorage = localStorageService.loadTaskData()
                 .orElse(new TaskStorage());
         TaskService taskService = new TaskService(taskStorage);
         TaskParser taskParser = new TaskParser();
@@ -81,7 +77,7 @@ public final class Megia {
                                         + String.format(
                                                 LocalizationService.getMessage("task_storage_add_2"),
                                                 taskService.getTaskCount()));
-                        LocalStorageService.saveTaskData(taskStorage,  PROPERTIES.getProperty("storage.task.path"));
+                        localStorageService.saveTaskData(taskStorage);
                     }
                     case "mark", "unmark", "delete" -> {
                         int taskId = taskParser.parseTaskId(body, command);
@@ -94,7 +90,7 @@ public final class Megia {
 
                         MessageSenderService.sendMessage(
                                 LocalizationService.getMessage(messageKey) + "\n" + task);
-                        LocalStorageService.saveTaskData(taskStorage,  PROPERTIES.getProperty("storage.task.path"));
+                        localStorageService.saveTaskData(taskStorage);
                     }
                     case "" -> MessageSenderService.sendMessage(
                             LocalizationService.getMessage("empty"));
@@ -112,6 +108,6 @@ public final class Megia {
 
         userInput.close();
         MessageSenderService.sendMessage(LocalizationService.getMessage("farewell"));
-        LocalStorageService.saveTaskData(taskStorage,  PROPERTIES.getProperty("storage.task.path"));
+        localStorageService.saveTaskData(taskStorage);
     }
 }

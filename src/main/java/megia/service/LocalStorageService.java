@@ -1,43 +1,35 @@
 package megia.service;
 
-import java.io.BufferedReader;
-import java.io.BufferedWriter;
-import java.io.FileReader;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.util.Optional;
+import megia.model.*;
 
-import megia.model.Deadline;
-import megia.model.Event;
-import megia.model.Task;
-import megia.model.TaskStorage;
-import megia.model.TaskType;
-import megia.model.Todo;
+import java.io.*;
+import java.util.Optional;
 
 /**
  * Loads and saves task data using the application's comma-delimited storage format.
  * Task text is assumed not to contain commas until the storage format supports escaping.
  */
 public final class LocalStorageService {
-
+    String taskStoragePath;
     /**
      * Creates an instance of the stateless local storage service.
+     * @param path The path for the task storage
      */
-    public LocalStorageService() {
+    public LocalStorageService(String path) {
+        this.taskStoragePath = path;
     }
 
     /**
-     * Loads tasks from the specified storage file.
+     * Loads tasks from the storage file.
      *
-     * @param dataPath Path to the task storage file.
      * @return Loaded task storage, or an empty optional if the file cannot be read.
      */
-    public static Optional<TaskStorage> loadTaskData(String dataPath) {
+    public Optional<TaskStorage> loadTaskData() {
         String line;
         TaskStorage taskStorage = new TaskStorage();
         TaskService taskService = new TaskService(taskStorage);
 
-        try (BufferedReader br = new BufferedReader(new FileReader(dataPath))) {
+        try (BufferedReader br = new BufferedReader(new FileReader(taskStoragePath))) {
             while ((line = br.readLine()) != null) {
                 String[] fields = line.strip().split(",");
                 TaskType taskType = TaskType.valueOf(fields[0]);
@@ -78,15 +70,14 @@ public final class LocalStorageService {
      * Saves all tasks to the specified storage file.
      *
      * @param taskStorage Tasks to save.
-     * @param dataPath Path to the task storage file.
      * @throws RuntimeException If the storage file cannot be written.
      */
-    public static void saveTaskData(TaskStorage taskStorage, String dataPath) {
+    public void saveTaskData(TaskStorage taskStorage) {
         StringBuilder out = new StringBuilder();
         for (Task task : taskStorage) {
             out.append(task.encode()).append("\n");
         }
-        try (BufferedWriter bw = new BufferedWriter(new FileWriter(dataPath))) {
+        try (BufferedWriter bw = new BufferedWriter(new FileWriter(taskStoragePath))) {
             bw.write(out.toString().strip());
         } catch (IOException e) {
             throw new RuntimeException(e);
