@@ -17,7 +17,7 @@ public class Task {
     }
 
     /**
-     * Creates an task with the specified description and completion status.
+     * Creates a task with the specified description and completion status.
      *
      * @param description Description of the task.
      * @param isDone Completion status of the task.
@@ -46,7 +46,14 @@ public class Task {
         return String.format("[%c] %s", (isDone ? 'X' : ' '), description);
     }
 
-    public String encode() { return String.format("%s,%s", isDone, description); }
+    /**
+     * Returns this task's fields in their comma-delimited storage representation.
+     *
+     * @return Completion status and description as stored on disk.
+     */
+    public String encode() {
+        return String.format("%s,%s", isDone, description);
+    }
 
     /**
      * Returns whether this task has been completed.

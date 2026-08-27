@@ -13,7 +13,15 @@ public class Todo extends Task {
         super(description);
     }
 
-    public Todo(String description, boolean isDone) { super(description, isDone); }
+    /**
+     * Restores a todo task with its description and completion status.
+     *
+     * @param description Description of the task.
+     * @param isDone Completion status of the task.
+     */
+    public Todo(String description, boolean isDone) {
+        super(description, isDone);
+    }
 
     @Override
     public String toString() {
@@ -21,5 +29,7 @@ public class Todo extends Task {
     }
 
     @Override
-    public String encode() { return TaskType.TODO.name() + ',' + super.encode(); }
+    public String encode() {
+        return TaskType.TODO.name() + ',' + super.encode();
+    }
 }

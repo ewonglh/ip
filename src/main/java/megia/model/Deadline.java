@@ -17,6 +17,13 @@ public class Deadline extends Task {
         this.deadline = deadline;
     }
 
+    /**
+     * Restores a deadline task with its description, completion status, and deadline text.
+     *
+     * @param description Description of the task.
+     * @param isDone Completion status of the task.
+     * @param deadline Deadline date or time stored as free-form text.
+     */
     public Deadline(String description, boolean isDone, String deadline) {
         super(description, isDone);
         this.deadline = deadline;

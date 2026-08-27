@@ -1,12 +1,37 @@
 package megia.service;
 
-import megia.model.*;
-
-import java.io.*;
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.util.Optional;
 
+import megia.model.Deadline;
+import megia.model.Event;
+import megia.model.Task;
+import megia.model.TaskStorage;
+import megia.model.TaskType;
+import megia.model.Todo;
+
+/**
+ * Loads and saves task data using the application's comma-delimited storage format.
+ * Task text is assumed not to contain commas until the storage format supports escaping.
+ */
 public final class LocalStorageService {
 
+    /**
+     * Creates an instance of the stateless local storage service.
+     */
+    public LocalStorageService() {
+    }
+
+    /**
+     * Loads tasks from the specified storage file.
+     *
+     * @param dataPath Path to the task storage file.
+     * @return Loaded task storage, or an empty optional if the file cannot be read.
+     */
     public static Optional<TaskStorage> loadTaskData(String dataPath) {
         String line;
         TaskStorage taskStorage = new TaskStorage();
@@ -25,6 +50,13 @@ public final class LocalStorageService {
         return Optional.of(taskStorage);
     }
 
+    /**
+     * Creates a task from fields parsed from one line of the storage file.
+     *
+     * @param data Parsed fields in the order required by the task type.
+     * @param taskType Type of task represented by the fields.
+     * @return Task reconstructed from the stored fields.
+     */
     private static Task getTaskFromLine(String[] data, TaskType taskType) {
         boolean isDone = Boolean.parseBoolean(data[1]);
         Task task;
@@ -42,6 +74,13 @@ public final class LocalStorageService {
         return task;
     }
 
+    /**
+     * Saves all tasks to the specified storage file.
+     *
+     * @param taskStorage Tasks to save.
+     * @param dataPath Path to the task storage file.
+     * @throws RuntimeException If the storage file cannot be written.
+     */
     public static void saveTaskData(TaskStorage taskStorage, String dataPath) {
         StringBuilder out = new StringBuilder();
         for (Task task : taskStorage) {

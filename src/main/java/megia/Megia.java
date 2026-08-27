@@ -8,7 +8,12 @@ import megia.exception.MegiaException;
 import megia.exception.UserInputException;
 import megia.model.Task;
 import megia.model.TaskStorage;
-import megia.service.*;
+import megia.service.LocalStorageService;
+import megia.service.LocalizationService;
+import megia.service.MessageSenderService;
+import megia.service.PropertiesService;
+import megia.service.TaskParser;
+import megia.service.TaskService;
 
 /**
  * Starts the Megia command-line task manager and handles its console interaction loop.
