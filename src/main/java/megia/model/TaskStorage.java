@@ -1,10 +1,11 @@
 package megia.model;
 
+import megia.exception.TaskNotFoundException;
+import megia.service.LocalizationService;
+
 import java.util.Iterator;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-
-import megia.service.LocalizationService;
 
 /**
  * Stores tasks and resolves their one-based user-facing IDs.
@@ -18,32 +19,49 @@ public class TaskStorage extends Storage<Task> implements Iterable<Task> {
     }
 
     /**
-     * Returns whether a user-facing task ID refers to an existing task.
-     * User-facing IDs start at 1, while the backing list is zero-indexed.
+     * Adds a task to the list.
      *
-     * @param taskId User-facing task ID.
-     * @return True when the ID refers to an existing task.
+     * @param task Task to add.
      */
-    public boolean isValidTaskId(int taskId) {
-        return taskId >= 1 && taskId <= items.size();
+    public void addTask(Task task) {
+        add(task);
     }
 
     /**
-     * Marks the task with the specified user-facing ID as completed.
+     * Marks a task as done.
      *
-     * @param taskId User-facing task ID.
+     * @param taskId One-based task ID.
+     * @return Updated task.
+     * @throws TaskNotFoundException If the task ID does not exist.
      */
-    public void markAsDone(int taskId) {
-        getTaskById(taskId).markAsDone();
+    public Task markTask(int taskId) throws TaskNotFoundException {
+        Task task = getTaskById(taskId, "mark");
+        task.markAsDone();
+        return task;
     }
 
     /**
-     * Marks the task with the specified user-facing ID as incomplete.
+     * Marks a task as not done.
      *
-     * @param taskId User-facing task ID.
+     * @param taskId One-based task ID.
+     * @return Updated task.
+     * @throws TaskNotFoundException If the task ID does not exist.
      */
-    public void markAsNotDone(int taskId) {
-        getTaskById(taskId).markAsNotDone();
+    public Task unmarkTask(int taskId) throws TaskNotFoundException {
+        Task task = getTaskById(taskId, "unmark");
+        task.markAsNotDone();
+        return task;
+    }
+
+    /**
+     * Deletes the task using its one-based user-facing ID.
+     *
+     * @param taskId One-based task ID.
+     * @return Deleted task.
+     * @throws TaskNotFoundException If the task ID does not exist.
+     */
+    public Task deleteTask(int taskId) throws TaskNotFoundException {
+        return items.remove(getTaskIndex(taskId, "delete"));
     }
 
     /**
@@ -56,23 +74,30 @@ public class TaskStorage extends Storage<Task> implements Iterable<Task> {
     }
 
     /**
-     * Finds a task by its user-facing ID and converts it to the list index.
+     * Retrieves a task by its one-based user-facing ID.
      *
-     * @param taskId User-facing task ID.
+     * @param taskId One-based task ID.
+     * @param operation Operation being attempted.
      * @return Matching task.
-     * @throws IndexOutOfBoundsException If the ID does not exist.
+     * @throws TaskNotFoundException If the task ID does not exist.
      */
-    public Task getTaskById(int taskId) {
-        return items.get(taskId - 1);
+    private Task getTaskById(int taskId, String operation) throws TaskNotFoundException {
+        return items.get(getTaskIndex(taskId, operation));
     }
 
     /**
-     * Deletes the task with the specified user-facing ID.
+     * Validates and converts a one-based task ID to its zero-based list index.
      *
-     * @param taskId User-facing task ID.
+     * @param taskId One-based task ID.
+     * @param operation Operation being attempted.
+     * @return Zero-based list index.
+     * @throws TaskNotFoundException If the task ID does not exist.
      */
-    public void deleteTaskById(int taskId) {
-        items.remove(taskId - 1);
+    private int getTaskIndex(int taskId, String operation) throws TaskNotFoundException {
+        if (taskId < 1 || taskId > items.size()) {
+            throw new TaskNotFoundException(taskId, items.size(), operation);
+        }
+        return taskId - 1;
     }
 
     @Override

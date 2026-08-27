@@ -1,117 +1,123 @@
 package megia;
 
-import java.util.Properties;
-import java.util.Scanner;
-
 import megia.exception.ErrorCode;
 import megia.exception.MegiaException;
 import megia.exception.UserInputException;
+import megia.model.ParsedCommand;
 import megia.model.Task;
 import megia.model.TaskStorage;
 import megia.service.LocalStorageService;
 import megia.service.LocalizationService;
-import megia.service.MessageSenderService;
 import megia.service.PropertiesService;
 import megia.service.TaskParser;
-import megia.service.TaskService;
+import megia.ui.ConsoleUi;
+
+import java.util.Optional;
+import java.util.Properties;
 
 /**
- * Starts the Megia command-line task manager and handles its console interaction loop.
+ * Coordinates the Megia command-line task manager.
  */
 public final class Megia {
     private static final Properties PROPERTIES = PropertiesService.getProperties();
-    private static final String BANNER = """
-            /\\ "-./  \\   /\\  ___\\   /\\  ___\\   /\\ \\   /\\  __ \\
-            \\ \\ \\-./\\ \\  \\ \\  __\\   \\ \\ \\__‾\\  \\ \\ \\  \\ \\  __ \\
-            \\ \\_\\ \\ \\_\\  \\ \\_____\\  \\ \\_____\\  \\ \\_\\  \\ \\_\\ \\_\\
-            \\/_/  \\/_/   \\/_____/   \\/_____/   \\/_/   \\/_/\\/_/
-            """.stripTrailing() + "\n\n";
 
-    private Megia() {
+    private final ConsoleUi ui;
+    private final LocalStorageService localStorageService;
+    private final TaskStorage taskStorage;
+    private final TaskParser taskParser;
+
+    /**
+     * Creates an application using the supplied UI, local storage, and task collection.
+     *
+     * @param ui Console interface used to interact with the user.
+     * @param localStorageService Storage used to persist tasks.
+     * @param taskStorage Task collection managed by the application.
+     */
+    public Megia(
+            ConsoleUi ui,
+            LocalStorageService localStorageService,
+            TaskStorage taskStorage) {
+        this.ui = ui;
+        this.localStorageService = localStorageService;
+        this.taskStorage = taskStorage;
+        this.taskParser = new TaskParser();
     }
 
     /**
-     * Runs the command-line application until the user exits or the input stream closes.
+     * Starts the command-line application using the configured storage and system console.
      *
      * @param arguments Command-line arguments, which Megia does not currently use.
      */
     public static void main(String[] arguments) {
-        TaskStorage taskStorage = LocalStorageService.loadTaskData(PROPERTIES.getProperty("storage.task.path"))
+        LocalStorageService localStorageService = new LocalStorageService(PROPERTIES.getProperty("storage.task.path"));
+        TaskStorage taskStorage = localStorageService.loadTaskData()
                 .orElse(new TaskStorage());
-        TaskService taskService = new TaskService(taskStorage);
-        TaskParser taskParser = new TaskParser();
-        Scanner userInput = new Scanner(System.in);
+
+        try (ConsoleUi ui = new ConsoleUi()) {
+            Megia megia = new Megia(ui, localStorageService, taskStorage);
+            megia.run();
+        }
+    }
+
+    /**
+     * Runs the application until the user exits or the input stream closes.
+     */
+    public void run() {
         boolean shouldExit = false;
 
-        MessageSenderService.sendGreeting(BANNER
-                + LocalizationService.getMessage("greeting"));
+        ui.showGreeting();
 
         while (!shouldExit) {
             try {
-                System.out.print("> ");
-                if (!userInput.hasNextLine()) {
+                Optional<String> rawInput = ui.readCommand();
+                if (rawInput.isEmpty()) {
                     break;
                 }
 
-                String rawInput = userInput.nextLine();
-                String trimmedInput = rawInput.strip();
-                String command;
-                String body;
-                if (trimmedInput.isEmpty()) {
-                    command = "";
-                    body = "";
-                } else {
-                    String[] inputParts = trimmedInput.split("\\s+", 2);
-                    command = inputParts[0];
-                    body = inputParts.length > 1 ? inputParts[1] : "";
-                }
+                ParsedCommand command = taskParser.parseCommand(rawInput.get());
 
-                switch (command) {
-                    case "list" -> MessageSenderService.sendMessage(taskStorage.toString());
+                switch (command.commandName()) {
+                    case "list" -> ui.showMessage(taskStorage.toString());
                     case "bye" -> shouldExit = true;
                     case "todo", "deadline", "event" -> {
-                        Task newTask = taskParser.parse(command, body);
-                        taskService.addTask(newTask);
+                        Task newTask = taskParser.parseNewTask(command);
+                        taskStorage.addTask(newTask);
 
-                        MessageSenderService.sendMessage(
+                        ui.showMessage(
                                 LocalizationService.getMessage("task_storage_add")
                                         + "\n"
                                         + "  " + newTask
                                         + "\n"
                                         + String.format(
                                                 LocalizationService.getMessage("task_storage_add_2"),
-                                                taskService.getTaskCount()));
-                        LocalStorageService.saveTaskData(taskStorage,  PROPERTIES.getProperty("storage.task.path"));
+                                                taskStorage.getTaskCount()));
+                        localStorageService.saveTaskData(taskStorage);
                     }
                     case "mark", "unmark", "delete" -> {
-                        int taskId = taskParser.parseTaskId(body, command);
-                        Task task = switch (command) {
-                            case "mark" -> taskService.markTask(taskId);
-                            case "unmark" -> taskService.unmarkTask(taskId);
-                            default -> taskService.deleteTask(taskId);
+                        int taskId = taskParser.parseTaskId(command);
+                        Task task = switch (command.commandName()) {
+                            case "mark" -> taskStorage.markTask(taskId);
+                            case "unmark" -> taskStorage.unmarkTask(taskId);
+                            default -> taskStorage.deleteTask(taskId);
                         };
-                        String messageKey = "task_storage_" + command;
+                        String messageKey = "task_storage_" + command.commandName();
 
-                        MessageSenderService.sendMessage(
+                        ui.showMessage(
                                 LocalizationService.getMessage(messageKey) + "\n" + task);
-                        LocalStorageService.saveTaskData(taskStorage,  PROPERTIES.getProperty("storage.task.path"));
+                        localStorageService.saveTaskData(taskStorage);
                     }
-                    case "" -> MessageSenderService.sendMessage(
+                    case "" -> ui.showMessage(
                             LocalizationService.getMessage("empty"));
-                    default -> throw new UserInputException(ErrorCode.UNKNOWN_COMMAND, command);
+                    default -> throw new UserInputException(ErrorCode.UNKNOWN_COMMAND, command.commandName());
                 }
             } catch (MegiaException exception) {
-                MessageSenderService.sendMessage(LocalizationService.getException(
-                        exception.getErrorCode(), exception.getMessageArguments()));
+                ui.showError(exception);
             } catch (RuntimeException exception) {
-                System.err.println("Unexpected application error: " + exception.getMessage());
-                MessageSenderService.sendMessage(
-                        LocalizationService.getMessage("unexpected_error"));
+                ui.showUnexpectedError(exception);
             }
         }
 
-        userInput.close();
-        MessageSenderService.sendMessage(LocalizationService.getMessage("farewell"));
-        LocalStorageService.saveTaskData(taskStorage,  PROPERTIES.getProperty("storage.task.path"));
+        ui.showFarewell();
+        localStorageService.saveTaskData(taskStorage);
     }
 }

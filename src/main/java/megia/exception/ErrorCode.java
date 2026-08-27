@@ -4,27 +4,27 @@ package megia.exception;
  * Identifies a user-facing error independently of its localized message.
  */
 public enum ErrorCode {
-    /** A todo command omitted its description. */
+    /** A todo commandName omitted its description. */
     TODO_DESCRIPTION_MISSING,
-    /** A deadline command omitted its {@code /by} marker. */
+    /** A deadline commandName omitted its {@code /by} marker. */
     DEADLINE_BY_MARKER_MISSING,
-    /** A deadline command omitted its description. */
+    /** A deadline commandName omitted its description. */
     DEADLINE_DESCRIPTION_MISSING,
-    /** A deadline command omitted the value after its {@code /by} marker. */
+    /** A deadline commandName omitted the value after its {@code /by} marker. */
     DEADLINE_BY_VALUE_MISSING,
-    /** An event command omitted its {@code /from} marker. */
+    /** An event commandName omitted its {@code /from} marker. */
     EVENT_FROM_MARKER_MISSING,
-    /** An event command omitted its {@code /to} marker. */
+    /** An event commandName omitted its {@code /to} marker. */
     EVENT_TO_MARKER_MISSING,
-    /** An event command placed its markers in the wrong order. */
+    /** An event commandName placed its markers in the wrong order. */
     EVENT_MARKERS_OUT_OF_ORDER,
-    /** An event command omitted its description. */
+    /** An event commandName omitted its description. */
     EVENT_DESCRIPTION_MISSING,
-    /** An event command omitted the value after its {@code /from} marker. */
+    /** An event commandName omitted the value after its {@code /from} marker. */
     EVENT_FROM_VALUE_MISSING,
-    /** An event command omitted the value after its {@code /to} marker. */
+    /** An event commandName omitted the value after its {@code /to} marker. */
     EVENT_TO_VALUE_MISSING,
-    /** A command repeated a marker that must occur once. */
+    /** A commandName repeated a marker that must occur once. */
     DUPLICATE_MARKER,
     /** A task operation omitted its task ID. */
     TASK_ID_MISSING,
@@ -38,6 +38,6 @@ public enum ErrorCode {
     TASK_LIST_EMPTY,
     /** A task operation refers to an unavailable task ID. */
     TASK_NOT_FOUND,
-    /** The supplied command name is not recognized. */
+    /** The supplied commandName name is not recognized. */
     UNKNOWN_COMMAND
 }
