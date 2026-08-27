@@ -9,6 +9,7 @@ import java.util.Properties;
  */
 public final class PropertiesService {
     private static final String DEFAULT_LANGUAGE = "en";
+    private static final String DEFAULT_FILE_PATH = "./task_storage.csv";
 
     private PropertiesService() {
     }
@@ -32,6 +33,7 @@ public final class PropertiesService {
             System.err.printf("Can't read application.properties. Using default settings: %s%n",
                     exception.getMessage());
             properties.setProperty("language", DEFAULT_LANGUAGE);
+            properties.setProperty("storage.task.path", DEFAULT_FILE_PATH);
         }
         return properties;
     }
