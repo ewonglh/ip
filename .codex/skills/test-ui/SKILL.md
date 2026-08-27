@@ -1,6 +1,6 @@
 ---
 name: test-ui
-description: Run this project's console UI tests from test/ui-test-plan.md by executing each listed command sequence, comparing the resulting output with the expected output, recording the console session, and stopping immediately on the first failure. Use when validating interactive Java UI behavior or updating the project's UI test cases.
+description: Run this project's console UI tests from test/ui-test-plan.md by executing each listed commandName sequence, comparing the resulting output with the expected output, recording the console session, and stopping immediately on the first failure. Use when validating interactive Java UI behavior or updating the project's UI test cases.
 ---
 
 # Test UI
