@@ -37,7 +37,7 @@ Dates and times are stored as free-form text. Trailing arguments supplied to
 
 1. Open the repository in IntelliJ IDEA.
 2. Configure the project SDK and language level to Java 25.
-3. Open `src/main/java/Megia.java`.
+3. Open `src/main/java/megia/Megia.java`.
 4. Run `Megia.main()`.
 
 Keep `src/main/java` as the Java source root.
@@ -45,7 +45,8 @@ Keep `src/main/java` as the Java source root.
 ## Running from the terminal
 
 ```bash
-java --class-path src/main/java:src/main/resources src/main/java/Megia.java
+javac --release 25 -d out $(find src/main/java -name '*.java')
+java --class-path out:src/main/resources megia.Megia
 ```
 
 ## Running the console tests
@@ -73,5 +74,6 @@ loaded, Megia falls back to English.
 - Coding harness/agent: Codex CLI
 - Used to discuss error-planning architecture and plan increment Level-5
   - Used to review and suggest improvements to iterate on Level-5 requirements
+- Used to give flavour to chatbot responses
 - Used to review and tweak JavaDoc comments
 - Used to expand the console UI tests with `test-ui` skill

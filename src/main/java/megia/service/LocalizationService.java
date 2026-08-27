@@ -1,12 +1,12 @@
-package service;
-
-import exception.ErrorCode;
+package megia.service;
 
 import java.util.IllegalFormatException;
 import java.util.Locale;
 import java.util.MissingResourceException;
 import java.util.Properties;
 import java.util.ResourceBundle;
+
+import megia.exception.ErrorCode;
 
 /**
  * Loads and formats localized text, falling back to English when possible.
@@ -29,17 +29,28 @@ public final class LocalizationService {
 
     /**
      * Formats the localized message associated with a structured error.
+     *
+     * @param errorCode Error whose message should be retrieved.
+     * @param arguments Values interpolated into the message.
+     * @return Formatted localized error message.
      */
     public static String getException(ErrorCode errorCode, Object... arguments) {
         String template = getLocalizedValue(EXCEPTIONS, ENGLISH_EXCEPTIONS, errorCode.name());
         try {
             return String.format(LOCALE, template, arguments);
-        } catch (IllegalFormatException e) {
-            System.err.printf("Invalid format for exception message '%s': %s%n", errorCode, e.getMessage());
+        } catch (IllegalFormatException exception) {
+            System.err.printf("Invalid format for exception message '%s': %s%n",
+                    errorCode, exception.getMessage());
             return template;
         }
     }
 
+    /**
+     * Returns the localized message associated with a message key.
+     *
+     * @param key Message key to retrieve.
+     * @return Localized message text.
+     */
     public static String getMessage(String key) {
         return getLocalizedValue(MESSAGES, ENGLISH_MESSAGES, key);
     }
@@ -53,8 +64,9 @@ public final class LocalizationService {
 
         try {
             return Locale.of(configuredLanguage);
-        } catch (RuntimeException e) {
-            System.err.printf("The configured language '%s' is invalid. Using English.%n", configuredLanguage);
+        } catch (RuntimeException exception) {
+            System.err.printf("The configured language '%s' is invalid. Using English.%n",
+                    configuredLanguage);
             return Locale.of(DEFAULT_LANGUAGE);
         }
     }
@@ -62,7 +74,7 @@ public final class LocalizationService {
     private static ResourceBundle loadBundle(String baseName, Locale targetLocale) {
         try {
             return ResourceBundle.getBundle(baseName, targetLocale, BUNDLE_CONTROL);
-        } catch (MissingResourceException e) {
+        } catch (MissingResourceException exception) {
             if (!targetLocale.getLanguage().equals(DEFAULT_LANGUAGE)) {
                 System.err.printf("Localization for '%s' is unavailable. Using English.%n",
                         targetLocale.getLanguage());
@@ -76,8 +88,7 @@ public final class LocalizationService {
     private static String getLocalizedValue(
             ResourceBundle selectedBundle,
             ResourceBundle fallbackBundle,
-            String key
-    ) {
+            String key) {
         if (selectedBundle != null && selectedBundle.containsKey(key)) {
             return selectedBundle.getString(key);
         }

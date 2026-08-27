@@ -1,4 +1,4 @@
-package exception;
+package megia.exception;
 
 import java.util.Objects;
 
@@ -8,14 +8,16 @@ import java.util.Objects;
  * the responsibility of the console interface.
  */
 public abstract class MegiaException extends Exception {
+    /** Identifies the localized error message. */
     private final ErrorCode errorCode;
+    /** Values to interpolate into the localized error message. */
     private final Object[] messageArguments;
 
     /**
      * Creates an exception with a localized-message key and formatting values.
      *
-     * @param errorCode identifies the message to display
-     * @param messageArguments values interpolated into the message
+     * @param errorCode Identifies the message to display.
+     * @param messageArguments Values interpolated into the message.
      */
     protected MegiaException(ErrorCode errorCode, Object... messageArguments) {
         super(Objects.requireNonNull(errorCode).name());
@@ -23,12 +25,19 @@ public abstract class MegiaException extends Exception {
         this.messageArguments = messageArguments.clone();
     }
 
+    /**
+     * Returns the structured error identifier.
+     *
+     * @return Error identifier.
+     */
     public ErrorCode getErrorCode() {
         return errorCode;
     }
 
     /**
      * Returns a defensive copy of the values used to format the message.
+     *
+     * @return Message formatting values.
      */
     public Object[] getMessageArguments() {
         return messageArguments.clone();

@@ -16,6 +16,7 @@ bin/
 # Temp files
 _temp/
 tmp/
+task_storage.csv
 
 /text-ui-test/ACTUAL.TXT
 text-ui-test/EXPECTED-UNIX.TXT
