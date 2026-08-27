@@ -1,17 +1,20 @@
 package megia.service;
 
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
 import megia.exception.ErrorCode;
 import megia.exception.UserInputException;
 import megia.model.Deadline;
-import megia.model.Event;
+import megia.model.ParsedCommand;
 import megia.model.Task;
 import megia.model.Todo;
+import megia.model.Event;
+
+
+
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
- * Converts task command bodies into the corresponding task objects.
+ * Parses complete user input and creates task objects from parsed commands.
  * Dates and times remain strings because the application does not require
  * date/time calculations.
  */
@@ -30,31 +33,44 @@ public final class TaskParser {
     }
 
     /**
-     * Parses the body of a task command.
+     * Splits complete user input into its command name and body.
      *
-     * @param command Task command, such as {@code todo} or {@code event}.
-     * @param body Input after the command name.
-     * @return Parsed task.
-     * @throws UserInputException If the body does not follow the command syntax.
+     * @param rawCommand Complete user input to parse.
+     * @return Parsed command containing the command name and body.
      */
-    public Task parse(String command, String body) throws UserInputException {
-        return switch (command) {
-            case "deadline" -> parseDeadline(body);
-            case "event" -> parseEvent(body);
-            default -> parseTodo(body);
+    public ParsedCommand parseCommand(String rawCommand) {
+        String trimmedInput = rawCommand.strip();
+        String[] inputParts = trimmedInput.split("\\s+", 2);
+        return new ParsedCommand(
+                inputParts[0],
+                inputParts.length > 1 ? inputParts[1] : ""
+        );
+    }
+
+    /**
+     * Parses the body of a task creation commandName.
+     *
+     * @param command Task commandName, such as {@code todo} or {@code event}.
+     * @return Parsed task.
+     * @throws UserInputException If the body does not follow the commandName syntax.
+     */
+    public Task parseNewTask(ParsedCommand command) throws UserInputException {
+        return switch (command.commandName()) {
+            case "deadline" -> parseDeadline(command.body());
+            case "event" -> parseEvent(command.body());
+            default -> parseTodo(command.body());
         };
     }
 
     /**
      * Parses and validates a positive, one-based task ID.
      *
-     * @param body Input after the command name.
      * @param command Command that needs the ID, such as {@code mark}.
      * @return Parsed task ID.
      * @throws UserInputException If the ID is missing or invalid.
      */
-    public int parseTaskId(String body, String command) throws UserInputException {
-        String taskIdText = body.strip();
+    public int parseTaskId(ParsedCommand command) throws UserInputException {
+        String taskIdText = command.body().strip();
         if (taskIdText.isEmpty()) {
             throw new UserInputException(ErrorCode.TASK_ID_MISSING, command);
         }
@@ -138,7 +154,7 @@ public final class TaskParser {
     }
 
     /**
-     * Finds exactly one whitespace-delimited marker in a command body.
+     * Finds exactly one whitespace-delimited marker in a commandName body.
      */
     private MarkerLocation findSingleMarker(
             String body,
@@ -166,7 +182,7 @@ public final class TaskParser {
     }
 
     /**
-     * Stores the character range occupied by a command marker.
+     * Stores the character range occupied by a commandName marker.
      */
     private record MarkerLocation(int start, int end) {
     }

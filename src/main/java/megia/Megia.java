@@ -3,6 +3,7 @@ package megia;
 import megia.exception.ErrorCode;
 import megia.exception.MegiaException;
 import megia.exception.UserInputException;
+import megia.model.ParsedCommand;
 import megia.model.Task;
 import megia.model.TaskStorage;
 import megia.service.*;
@@ -11,7 +12,7 @@ import java.util.Properties;
 import java.util.Scanner;
 
 /**
- * Starts the Megia command-line task manager and handles its console interaction loop.
+ * Starts the Megia commandName-line task manager and handles its console interaction loop.
  */
 public final class Megia {
     private static final Properties PROPERTIES = PropertiesService.getProperties();
@@ -26,7 +27,7 @@ public final class Megia {
     }
 
     /**
-     * Runs the command-line application until the user exits or the input stream closes.
+     * Runs the commandName-line application until the user exits or the input stream closes.
      *
      * @param arguments Command-line arguments, which Megia does not currently use.
      */
@@ -49,23 +50,13 @@ public final class Megia {
                 }
 
                 String rawInput = userInput.nextLine();
-                String trimmedInput = rawInput.strip();
-                String command;
-                String body;
-                if (trimmedInput.isEmpty()) {
-                    command = "";
-                    body = "";
-                } else {
-                    String[] inputParts = trimmedInput.split("\\s+", 2);
-                    command = inputParts[0];
-                    body = inputParts.length > 1 ? inputParts[1] : "";
-                }
+                ParsedCommand command = taskParser.parseCommand(rawInput);
 
-                switch (command) {
+                switch (command.commandName()) {
                     case "list" -> MessageSenderService.sendMessage(taskStorage.toString());
                     case "bye" -> shouldExit = true;
                     case "todo", "deadline", "event" -> {
-                        Task newTask = taskParser.parse(command, body);
+                        Task newTask = taskParser.parseNewTask(command);
                         taskStorage.addTask(newTask);
 
                         MessageSenderService.sendMessage(
@@ -79,13 +70,13 @@ public final class Megia {
                         localStorageService.saveTaskData(taskStorage);
                     }
                     case "mark", "unmark", "delete" -> {
-                        int taskId = taskParser.parseTaskId(body, command);
-                        Task task = switch (command) {
+                        int taskId = taskParser.parseTaskId(command);
+                        Task task = switch (command.commandName()) {
                             case "mark" -> taskStorage.markTask(taskId);
                             case "unmark" -> taskStorage.unmarkTask(taskId);
                             default -> taskStorage.deleteTask(taskId);
                         };
-                        String messageKey = "task_storage_" + command;
+                        String messageKey = "task_storage_" + command.commandName();
 
                         MessageSenderService.sendMessage(
                                 LocalizationService.getMessage(messageKey) + "\n" + task);
