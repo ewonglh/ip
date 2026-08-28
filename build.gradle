@@ -37,18 +37,18 @@ test {
 }
 
 application {
-    mainClass = 'seedu.duke.Duke'
+    mainClass = 'megia.Megia'
 }
 
 jar {
     // A lean JAR file (i.e., without the dependencies packaged inside) is not needed.
-    enabled = false
+    enabled = true
     // Rename its output anyway; Gradle forbids it clashing with the shadowJar output file, even for a disabled task.
     archiveClassifier = 'without-dependencies'
 }
 
 shadowJar {
-    archiveFileName = 'duke.jar'
+    archiveFileName = 'megia.jar'
 }
 
 run {
