@@ -1,13 +1,13 @@
 package megia.model;
 
-import megia.exception.TaskNotFoundException;
-import megia.service.LocalizationService;
-
 import java.time.LocalDate;
 import java.util.Iterator;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+
+import megia.exception.TaskNotFoundException;
+import megia.service.LocalizationService;
 
 /**
  * Stores tasks and resolves their one-based user-facing IDs.

@@ -1,9 +1,5 @@
 package megia.service;
 
-import megia.exception.ErrorCode;
-import megia.exception.UserInputException;
-import megia.model.*;
-
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -13,6 +9,15 @@ import java.time.format.ResolverStyle;
 import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import megia.exception.ErrorCode;
+import megia.exception.UserInputException;
+import megia.model.Deadline;
+import megia.model.Event;
+import megia.model.ParsedCommand;
+import megia.model.Task;
+import megia.model.Todo;
+
 
 /** Parses commands and creates strongly typed task objects. */
 public final class TaskParser {

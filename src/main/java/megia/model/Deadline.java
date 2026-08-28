@@ -37,6 +37,12 @@ public class Deadline extends Task {
         this.deadline = Objects.requireNonNull(deadline);
     }
 
+    /**
+     * Returns whether this deadline falls on the specified date.
+     *
+     * @param date Date to check.
+     * @return True if this deadline falls on the specified date.
+     */
     @Override
     public boolean occursOn(LocalDate date) {
         return deadline.toLocalDate().equals(date);
