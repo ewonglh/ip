@@ -1,5 +1,9 @@
 package megia;
 
+import java.time.LocalDate;
+import java.util.Optional;
+import java.util.Properties;
+
 import megia.exception.ErrorCode;
 import megia.exception.MegiaException;
 import megia.exception.StorageException;
@@ -12,9 +16,6 @@ import megia.service.LocalizationService;
 import megia.service.PropertiesService;
 import megia.service.TaskParser;
 import megia.ui.ConsoleUi;
-
-import java.util.Optional;
-import java.util.Properties;
 
 /**
  * Coordinates the Megia command-line task manager.
@@ -85,7 +86,11 @@ public final class Megia {
                 ParsedCommand command = taskParser.parseCommand(rawInput.get());
 
                 switch (command.commandName()) {
-                    case "list" -> ui.showMessage(taskStorage.toString());
+                    case "list" -> {
+                        Optional<LocalDate> date = taskParser.parseListDate(command);
+                        String taskList = date.map(taskStorage::getTasksOn).orElseGet(taskStorage::toString);
+                        ui.showMessage(taskList);
+                    }
                     case "bye" -> shouldExit = true;
                     case "todo", "deadline", "event" -> {
                         Task newTask = taskParser.parseNewTask(command);

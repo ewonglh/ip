@@ -1,5 +1,7 @@
 package megia.model;
 
+import java.time.LocalDate;
+
 /**
  * Represents a task description and its completion state.
  */
@@ -39,6 +41,17 @@ public class Task {
      */
     public void markAsNotDone() {
         this.isDone = false;
+    }
+
+    /**
+     * Returns whether this task occurs on the specified date.
+     * Tasks without a date, such as todos, do not occur on any date.
+     *
+     * @param date Date to check.
+     * @return False because a generic task has no date.
+     */
+    public boolean occursOn(LocalDate date) {
+        return false;
     }
 
     @Override

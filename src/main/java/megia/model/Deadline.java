@@ -1,5 +1,6 @@
 package megia.model;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Locale;
@@ -34,6 +35,11 @@ public class Deadline extends Task {
     public Deadline(String description, boolean isDone, LocalDateTime deadline) {
         super(description, isDone);
         this.deadline = Objects.requireNonNull(deadline);
+    }
+
+    @Override
+    public boolean occursOn(LocalDate date) {
+        return deadline.toLocalDate().equals(date);
     }
 
     @Override

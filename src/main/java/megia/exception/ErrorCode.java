@@ -53,5 +53,7 @@ public enum ErrorCode {
     /** Stored task data is malformed. */
     STORAGE_MALFORMED,
     /** The stored task data cannot be read. */
-    STORAGE_UNREADABLE
+    STORAGE_UNREADABLE,
+    /** A task list request has an invalid date. */
+    LIST_DATE_INVALID
 }

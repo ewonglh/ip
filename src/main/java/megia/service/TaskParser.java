@@ -1,21 +1,18 @@
 package megia.service;
 
+import megia.exception.ErrorCode;
+import megia.exception.UserInputException;
+import megia.model.*;
+
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.time.format.ResolverStyle;
+import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
-import megia.exception.ErrorCode;
-import megia.exception.UserInputException;
-import megia.model.Deadline;
-import megia.model.Event;
-import megia.model.ParsedCommand;
-import megia.model.Task;
-import megia.model.Todo;
 
 /** Parses commands and creates strongly typed task objects. */
 public final class TaskParser {
@@ -89,6 +86,25 @@ public final class TaskParser {
             return taskId;
         } catch (NumberFormatException exception) {
             throw new UserInputException(ErrorCode.TASK_ID_TOO_LARGE, taskIdText);
+        }
+    }
+
+    /**
+     * Parses an optional date supplied to the list command.
+     *
+     * @param command List command to parse.
+     * @return Empty when all tasks should be listed, or the requested date.
+     * @throws UserInputException If the supplied date is invalid.
+     */
+    public Optional<LocalDate> parseListDate(ParsedCommand command) throws UserInputException {
+        String listDateText = command.body().strip();
+        if (listDateText.isBlank()) {
+            return Optional.empty();
+        }
+        try {
+            return Optional.of(parseDate(listDateText));
+        } catch (DateTimeParseException exception) {
+            throw new UserInputException(ErrorCode.LIST_DATE_INVALID, listDateText);
         }
     }
 

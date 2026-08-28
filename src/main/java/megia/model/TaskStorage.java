@@ -3,7 +3,9 @@ package megia.model;
 import megia.exception.TaskNotFoundException;
 import megia.service.LocalizationService;
 
+import java.time.LocalDate;
 import java.util.Iterator;
+import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -71,6 +73,28 @@ public class TaskStorage extends Storage<Task> implements Iterable<Task> {
      */
     public int getTaskCount() {
         return items.size();
+    }
+
+    /**
+     * Returns the tasks that occur on a specified date with their original task IDs.
+     *
+     * @param date Date used to filter tasks.
+     * @return Formatted matching tasks, or a message when no tasks match.
+     */
+    public String getTasksOn(LocalDate date) {
+        List<Integer> matchingIndexes = IntStream.range(0, items.size())
+                .filter(i -> items.get(i).occursOn(date))
+                .boxed()
+                .toList();
+        if (matchingIndexes.isEmpty()) {
+            return String.format(LocalizationService.getMessage("task_storage_date_empty"), date);
+        }
+
+        return String.format(LocalizationService.getMessage("task_storage_date_list"), date) + "\n"
+                + matchingIndexes.stream()
+                        .map(i -> (i + 1) + "." + items.get(i) + "\n")
+                        .collect(Collectors.joining())
+                        .strip();
     }
 
     /**

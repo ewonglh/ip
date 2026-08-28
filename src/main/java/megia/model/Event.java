@@ -1,5 +1,6 @@
 package megia.model;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Locale;
@@ -45,6 +46,13 @@ public class Event extends Task {
         validateTimeRange(startTime, endTime);
         this.startTime = startTime;
         this.endTime = endTime;
+    }
+
+    @Override
+    public boolean occursOn(LocalDate date) {
+        LocalDate startDate = startTime.toLocalDate();
+        LocalDate endDate = endTime.toLocalDate();
+        return !date.isBefore(startDate) && !date.isAfter(endDate);
     }
 
     @Override
