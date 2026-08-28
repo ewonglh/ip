@@ -17,16 +17,22 @@ input.
 | Command | Example |
 |---|---|
 | `todo <description>` | `todo borrow a book` |
-| `deadline <description> /by <date>` | `deadline submit report /by Friday 5pm` |
-| `event <description> /from <start> /to <end>` | `event meeting /from 2pm /to 4pm` |
+| `deadline <description> /by <date and time>` | `deadline submit report /by 2019-12-02 1800` |
+| `event <description> /on <date> /from <time> /to <time>` | `event meeting /on 2019-12-02 /from 1400 /to 1600` |
+| `event <description> /from <date and time> /to <date and time>` | `event conference /from 2019-12-02 1400 /to 2019-12-03 1600` |
 | `list` | `list` |
+| `list <date>` | `list 2/12/2019` |
 | `mark <task number>` | `mark 1` |
 | `unmark <task number>` | `unmark 1` |
 | `delete <task number>` | `delete 1` |
 | `bye` | `bye` |
 
-Dates and times are stored as free-form text. Trailing arguments supplied to
-`list` and `bye` are ignored.
+Dates use `YYYY-MM-DD` or day-first `D/M/YYYY`; times use 24-hour `HHmm`.
+Deadlines and event endpoints are persisted as ISO local date-times.
+
+`list <date>` shows deadlines on that date and events spanning that calendar
+date. Todos do not appear in date-filtered lists, and task numbers remain the
+same as in an unfiltered list.
 
 ## Requirements
 
