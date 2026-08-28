@@ -55,5 +55,7 @@ public enum ErrorCode {
     /** The stored task data cannot be read. */
     STORAGE_UNREADABLE,
     /** A task list request has an invalid date. */
-    LIST_DATE_INVALID
+    LIST_DATE_INVALID,
+    /** A find command omitted its description query. */
+    FIND_QUERY_MISSING
 }

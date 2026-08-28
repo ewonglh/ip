@@ -18,7 +18,6 @@ import megia.model.ParsedCommand;
 import megia.model.Task;
 import megia.model.Todo;
 
-
 /** Parses commands and creates strongly typed task objects. */
 public final class TaskParser {
     private static final String MARKER_BY = "/by";
@@ -111,6 +110,21 @@ public final class TaskParser {
         } catch (DateTimeParseException exception) {
             throw new UserInputException(ErrorCode.LIST_DATE_INVALID, listDateText);
         }
+    }
+
+    /**
+     * Parses a nonempty description query supplied to the find command.
+     *
+     * @param command Find command to parse.
+     * @return Query text with leading and trailing whitespace removed.
+     * @throws UserInputException If the query is empty.
+     */
+    public String parseFindQuery(ParsedCommand command) throws UserInputException {
+        String query = command.body().strip();
+        if (query.isEmpty()) {
+            throw new UserInputException(ErrorCode.FIND_QUERY_MISSING);
+        }
+        return query;
     }
 
     private Todo parseTodo(String body) throws UserInputException {

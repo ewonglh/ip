@@ -54,6 +54,16 @@ public class Task {
         return false;
     }
 
+    /**
+     * Returns whether this task's description contains the specified text.
+     *
+     * @param query Text to search for.
+     * @return True if the description contains the query as a literal substring, including case.
+     */
+    public boolean hasDescriptionContaining(String query) {
+        return description.contains(query);
+    }
+
     @Override
     public String toString() {
         return String.format("[%c] %s", (isDone ? 'X' : ' '), description);

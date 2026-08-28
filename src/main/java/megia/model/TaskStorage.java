@@ -98,6 +98,28 @@ public class TaskStorage extends Storage<Task> implements Iterable<Task> {
     }
 
     /**
+     * Returns the tasks whose descriptions contain the specified query with their original task IDs.
+     *
+     * @param query Text used to filter task descriptions.
+     * @return Formatted matching tasks, or a message when no tasks match.
+     */
+    public String findTasks(String query) {
+        List<Integer> matchingIndexes = IntStream.range(0, items.size())
+                .filter(i -> items.get(i).hasDescriptionContaining(query))
+                .boxed()
+                .toList();
+        if (matchingIndexes.isEmpty()) {
+            return String.format(LocalizationService.getMessage("task_storage_find_empty"), query);
+        }
+
+        return LocalizationService.getMessage("task_storage_find_list") + "\n"
+                + matchingIndexes.stream()
+                        .map(i -> (i + 1) + "." + items.get(i) + "\n")
+                        .collect(Collectors.joining())
+                        .strip();
+    }
+
+    /**
      * Retrieves a task by its one-based user-facing ID.
      *
      * @param taskId One-based task ID.

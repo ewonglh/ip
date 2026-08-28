@@ -368,7 +368,7 @@ bye
 ### Expected output
 
 ```text
-"remember" is not a recognized command. Available commands: todo, deadline, event, list, mark, unmark, delete, bye.
+"remember" is not a recognized command. Available commands: todo, deadline, event, list, find, mark, unmark, delete, bye.
 You didn't enter a command. Try "list" to view your tasks.
 ```
 
@@ -499,4 +499,43 @@ bye
 Here's your tasks on 2019-12-02:
 1.[D][ ] report (by: Dec 02 2019, 6:00 PM)
 2.[E][ ] workshop (from: Dec 01 2019, 3:00 PM to: Dec 03 2019, 11:00 AM)
+```
+
+## Test case 22: Find tasks by description
+
+- Aim: Verify literal, case-sensitive matching across task types while preserving task IDs.
+
+### Inputs
+
+```text
+todo review PR #42 [urgent]
+deadline review report /by 2019-12-02 1800
+event team review /on 2019-12-02 /from 1400 /to 1600
+find review
+find PR #42 [urgent]
+find Review
+find
+bye
+```
+
+### Expected output
+
+```text
+Got it. I've added this task:
+  [T][ ] review PR #42 [urgent]
+Now you have 1 tasks in the list.
+Got it. I've added this task:
+  [D][ ] review report (by: Dec 02 2019, 6:00 PM)
+Now you have 2 tasks in the list.
+Got it. I've added this task:
+  [E][ ] team review (on: Dec 02 2019, from: 2:00 PM to: 4:00 PM)
+Now you have 3 tasks in the list.
+Here are the matching tasks:
+1.[T][ ] review PR #42 [urgent]
+2.[D][ ] review report (by: Dec 02 2019, 6:00 PM)
+3.[E][ ] team review (on: Dec 02 2019, from: 2:00 PM to: 4:00 PM)
+Here are the matching tasks:
+1.[T][ ] review PR #42 [urgent]
+There are no tasks containing "Review".
+A find command needs a search term. Try: find borrow a book
 ```

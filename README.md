@@ -22,6 +22,7 @@ input.
 | `event <description> /from <date and time> /to <date and time>` | `event conference /from 2019-12-02 1400 /to 2019-12-03 1600` |
 | `list` | `list` |
 | `list <date>` | `list 2/12/2019` |
+| `find <query>` | `find borrow a book` |
 | `mark <task number>` | `mark 1` |
 | `unmark <task number>` | `unmark 1` |
 | `delete <task number>` | `delete 1` |
@@ -33,6 +34,10 @@ Deadlines and event endpoints are persisted as ISO local date-times.
 `list <date>` shows deadlines on that date and events spanning that calendar
 date. Todos do not appear in date-filtered lists, and task numbers remain the
 same as in an unfiltered list.
+
+`find <query>` lists every task whose description contains the query. Matching
+is literal and case-sensitive; spaces and special characters are supported, and
+task numbers remain the same as in an unfiltered list.
 
 ## Requirements
 
