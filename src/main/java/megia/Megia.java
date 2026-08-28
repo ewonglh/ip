@@ -69,7 +69,7 @@ public final class Megia {
     }
 
     /**
-     * Runs the application until the user exits or the input stream closes. aa
+     * Runs the application until the user exits or the input stream closes.
      */
     public void run() {
         boolean shouldExit = false;
