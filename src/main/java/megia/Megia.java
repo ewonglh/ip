@@ -2,6 +2,7 @@ package megia;
 
 import megia.exception.ErrorCode;
 import megia.exception.MegiaException;
+import megia.exception.StorageException;
 import megia.exception.UserInputException;
 import megia.model.ParsedCommand;
 import megia.model.Task;
@@ -49,9 +50,16 @@ public final class Megia {
      * @param arguments Command-line arguments, which Megia does not currently use.
      */
     public static void main(String[] arguments) {
-        LocalStorageService localStorageService = new LocalStorageService(PROPERTIES.getProperty("storage.task.path"));
-        TaskStorage taskStorage = localStorageService.loadTaskData()
-                .orElse(new TaskStorage());
+        LocalStorageService localStorageService = new LocalStorageService(
+                PROPERTIES.getProperty("storage.task.path"));
+        TaskStorage taskStorage;
+        try {
+            taskStorage = localStorageService.loadTaskData().orElse(new TaskStorage());
+        } catch (StorageException exception) {
+            System.err.println(LocalizationService.getException(
+                    exception.getErrorCode(), exception.getMessageArguments()));
+            return;
+        }
 
         try (ConsoleUi ui = new ConsoleUi()) {
             Megia megia = new Megia(ui, localStorageService, taskStorage);

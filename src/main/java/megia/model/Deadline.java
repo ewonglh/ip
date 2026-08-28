@@ -1,20 +1,27 @@
 package megia.model;
 
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.Locale;
+import java.util.Objects;
+
 /**
  * Represents a task that should be completed by a specified date or time.
  */
 public class Deadline extends Task {
-    private final String deadline;
+    private static final DateTimeFormatter DISPLAY_FORMATTER =
+            DateTimeFormatter.ofPattern("MMM dd uuuu, h:mm a", Locale.ENGLISH);
+    private final LocalDateTime deadline;
 
     /**
      * Creates a deadline task with its description and deadline text.
      *
      * @param description Description of the task.
-     * @param deadline Deadline date or time stored as free-form text.
+     * @param deadline Deadline date and time.
      */
-    public Deadline(String description, String deadline) {
+    public Deadline(String description, LocalDateTime deadline) {
         super(description);
-        this.deadline = deadline;
+        this.deadline = Objects.requireNonNull(deadline);
     }
 
     /**
@@ -22,17 +29,17 @@ public class Deadline extends Task {
      *
      * @param description Description of the task.
      * @param isDone Completion status of the task.
-     * @param deadline Deadline date or time stored as free-form text.
+     * @param deadline Deadline date and time.
      */
-    public Deadline(String description, boolean isDone, String deadline) {
+    public Deadline(String description, boolean isDone, LocalDateTime deadline) {
         super(description, isDone);
-        this.deadline = deadline;
+        this.deadline = Objects.requireNonNull(deadline);
     }
 
     @Override
     public String toString() {
         return "[D]" + super.toString()
-                + " (by: " + deadline + ")";
+                + " (by: " + deadline.format(DISPLAY_FORMATTER) + ")";
     }
 
     @Override

@@ -1,58 +1,59 @@
 package megia.service;
 
-import megia.exception.ErrorCode;
-import megia.exception.UserInputException;
-import megia.model.Deadline;
-import megia.model.ParsedCommand;
-import megia.model.Task;
-import megia.model.Todo;
-import megia.model.Event;
-
-
-
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
+import java.time.format.ResolverStyle;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-/**
- * Parses complete user input and creates task objects from parsed commands.
- * Dates and times remain strings because the application does not require
- * date/time calculations.
- */
+import megia.exception.ErrorCode;
+import megia.exception.UserInputException;
+import megia.model.Deadline;
+import megia.model.Event;
+import megia.model.ParsedCommand;
+import megia.model.Task;
+import megia.model.Todo;
+
+/** Parses commands and creates strongly typed task objects. */
 public final class TaskParser {
     private static final String MARKER_BY = "/by";
+    private static final String MARKER_ON = "/on";
     private static final String MARKER_FROM = "/from";
     private static final String MARKER_TO = "/to";
-    private static final Pattern MARKER_BY_PATTERN = markerPattern(MARKER_BY);
-    private static final Pattern MARKER_FROM_PATTERN = markerPattern(MARKER_FROM);
-    private static final Pattern MARKER_TO_PATTERN = markerPattern(MARKER_TO);
+    private static final Pattern BY_PATTERN = markerPattern(MARKER_BY);
+    private static final Pattern ON_PATTERN = markerPattern(MARKER_ON);
+    private static final Pattern FROM_PATTERN = markerPattern(MARKER_FROM);
+    private static final Pattern TO_PATTERN = markerPattern(MARKER_TO);
+    private static final DateTimeFormatter ISO_DATE_TIME = strictFormatter("uuuu-MM-dd HHmm");
+    private static final DateTimeFormatter SLASH_DATE_TIME = strictFormatter("d/M/uuuu HHmm");
+    private static final DateTimeFormatter ISO_DATE = strictFormatter("uuuu-MM-dd");
+    private static final DateTimeFormatter SLASH_DATE = strictFormatter("d/M/uuuu");
+    private static final DateTimeFormatter TIME = strictFormatter("HHmm");
 
-    /**
-     * Creates a parser for task commands.
-     */
+    /** Creates a parser for task commands. */
     public TaskParser() {
     }
 
     /**
-     * Splits complete user input into its command name and body.
+     * Splits complete input into its command name and body.
      *
-     * @param rawCommand Complete user input to parse.
-     * @return Parsed command containing the command name and body.
+     * @param rawCommand Complete user input.
+     * @return Parsed command name and body.
      */
     public ParsedCommand parseCommand(String rawCommand) {
-        String trimmedInput = rawCommand.strip();
-        String[] inputParts = trimmedInput.split("\\s+", 2);
-        return new ParsedCommand(
-                inputParts[0],
-                inputParts.length > 1 ? inputParts[1] : ""
-        );
+        String[] inputParts = rawCommand.strip().split("\\s+", 2);
+        return new ParsedCommand(inputParts[0], inputParts.length > 1 ? inputParts[1] : "");
     }
 
     /**
-     * Parses the body of a task creation commandName.
+     * Parses a task creation command.
      *
-     * @param command Task commandName, such as {@code todo} or {@code event}.
-     * @return Parsed task.
-     * @throws UserInputException If the body does not follow the commandName syntax.
+     * @param command Command to parse.
+     * @return Newly created task.
+     * @throws UserInputException If the command body is invalid.
      */
     public Task parseNewTask(ParsedCommand command) throws UserInputException {
         return switch (command.commandName()) {
@@ -65,14 +66,14 @@ public final class TaskParser {
     /**
      * Parses and validates a positive, one-based task ID.
      *
-     * @param command Command that needs the ID, such as {@code mark}.
+     * @param command Command containing the task ID.
      * @return Parsed task ID.
-     * @throws UserInputException If the ID is missing or invalid.
+     * @throws UserInputException If the task ID is invalid.
      */
     public int parseTaskId(ParsedCommand command) throws UserInputException {
         String taskIdText = command.body().strip();
         if (taskIdText.isEmpty()) {
-            throw new UserInputException(ErrorCode.TASK_ID_MISSING, command);
+            throw new UserInputException(ErrorCode.TASK_ID_MISSING, command.commandName());
         }
         if (!taskIdText.matches("[+-]?\\d+")) {
             throw new UserInputException(ErrorCode.TASK_ID_NOT_INTEGER, taskIdText);
@@ -80,7 +81,6 @@ public final class TaskParser {
         if (taskIdText.startsWith("-")) {
             throw new UserInputException(ErrorCode.TASK_ID_NOT_POSITIVE);
         }
-
         try {
             int taskId = Integer.parseInt(taskIdText);
             if (taskId <= 0) {
@@ -93,79 +93,145 @@ public final class TaskParser {
     }
 
     private Todo parseTodo(String body) throws UserInputException {
-        String description = body.trim();
+        String description = body.strip();
         if (description.isBlank()) {
             throw new UserInputException(ErrorCode.TODO_DESCRIPTION_MISSING);
         }
         return new Todo(description);
     }
 
-    /**
-     * Parses a deadline body into its description and deadline text.
-     */
     private Deadline parseDeadline(String body) throws UserInputException {
-        MarkerLocation byMarker = findSingleMarker(
-                body, MARKER_BY_PATTERN, MARKER_BY, ErrorCode.DEADLINE_BY_MARKER_MISSING);
-
+        MarkerLocation byMarker = findSingleMarker(body, BY_PATTERN, MARKER_BY,
+                ErrorCode.DEADLINE_BY_MARKER_MISSING);
         String description = body.substring(0, byMarker.start()).strip();
-        String deadline = body.substring(byMarker.end()).strip();
-
+        String value = body.substring(byMarker.end()).strip();
         if (description.isBlank()) {
             throw new UserInputException(ErrorCode.DEADLINE_DESCRIPTION_MISSING);
         }
-
-        if (deadline.isBlank()) {
+        if (value.isBlank()) {
             throw new UserInputException(ErrorCode.DEADLINE_BY_VALUE_MISSING);
         }
-
-        return new Deadline(description, deadline);
+        try {
+            return new Deadline(description, parseDateTime(value));
+        } catch (DateTimeParseException exception) {
+            throw new UserInputException(ErrorCode.DEADLINE_DATE_INVALID);
+        }
     }
 
-    /**
-     * Parses an event body into its description, start time, and end time.
-     */
     private Event parseEvent(String body) throws UserInputException {
-        MarkerLocation fromMarker = findSingleMarker(
-                body, MARKER_FROM_PATTERN, MARKER_FROM, ErrorCode.EVENT_FROM_MARKER_MISSING);
-        MarkerLocation toMarker = findSingleMarker(
-                body, MARKER_TO_PATTERN, MARKER_TO, ErrorCode.EVENT_TO_MARKER_MISSING);
-
-        if (fromMarker.start() > toMarker.start()) {
+        MarkerLocation onMarker = findOptionalMarker(body, ON_PATTERN, MARKER_ON);
+        MarkerLocation fromMarker = findOptionalMarker(body, FROM_PATTERN, MARKER_FROM);
+        MarkerLocation toMarker = findOptionalMarker(body, TO_PATTERN, MARKER_TO);
+        if (fromMarker == null) {
+            throw new UserInputException(ErrorCode.EVENT_FROM_MARKER_MISSING);
+        }
+        if (toMarker == null) {
+            throw new UserInputException(ErrorCode.EVENT_TO_MARKER_MISSING);
+        }
+        boolean areRequiredMarkersOutOfOrder = fromMarker.start() > toMarker.start();
+        boolean isDateMarkerOutOfOrder = onMarker != null && onMarker.start() > fromMarker.start();
+        if (areRequiredMarkersOutOfOrder || isDateMarkerOutOfOrder) {
             throw new UserInputException(ErrorCode.EVENT_MARKERS_OUT_OF_ORDER);
         }
-
-        String description = body.substring(0, fromMarker.start()).strip();
-        String startTime = body.substring(fromMarker.end(), toMarker.start()).strip();
-        String endTime = body.substring(toMarker.end()).strip();
-
+        String description = body.substring(0, (onMarker == null ? fromMarker : onMarker).start()).strip();
         if (description.isBlank()) {
             throw new UserInputException(ErrorCode.EVENT_DESCRIPTION_MISSING);
         }
-
-        if (startTime.isBlank()) {
+        String dateText = onMarker == null
+                ? null
+                : body.substring(onMarker.end(), fromMarker.start()).strip();
+        String startText = body.substring(fromMarker.end(), toMarker.start()).strip();
+        String endText = body.substring(toMarker.end()).strip();
+        if (startText.isBlank()) {
             throw new UserInputException(ErrorCode.EVENT_FROM_VALUE_MISSING);
         }
-
-        if (endTime.isBlank()) {
+        if (endText.isBlank()) {
             throw new UserInputException(ErrorCode.EVENT_TO_VALUE_MISSING);
         }
-
-        return new Event(description, startTime, endTime);
+        if (onMarker != null) {
+            if (dateText.isBlank()) {
+                throw new UserInputException(ErrorCode.EVENT_DATE_INVALID);
+            }
+            LocalDate date;
+            try {
+                date = parseDate(dateText);
+            } catch (DateTimeParseException exception) {
+                throw new UserInputException(ErrorCode.EVENT_DATE_INVALID);
+            }
+            LocalTime startTime = parseTime(startText, ErrorCode.EVENT_START_TIME_INVALID);
+            LocalTime endTime = parseTime(endText, ErrorCode.EVENT_END_TIME_INVALID);
+            LocalDateTime start = LocalDateTime.of(date, startTime);
+            LocalDateTime end = LocalDateTime.of(date, endTime);
+            return createEvent(description, start, end);
+        }
+        return createEvent(description,
+                parseEventDateTime(startText, ErrorCode.EVENT_START_TIME_INVALID),
+                parseEventDateTime(endText, ErrorCode.EVENT_END_TIME_INVALID));
     }
 
-    /**
-     * Finds exactly one whitespace-delimited marker in a commandName body.
-     */
-    private MarkerLocation findSingleMarker(
-            String body,
-            Pattern pattern,
-            String marker,
-            ErrorCode missingMarkerError) throws UserInputException {
-        Matcher matcher = pattern.matcher(body);
-        if (!matcher.find()) {
-            throw new UserInputException(missingMarkerError);
+    private static Event createEvent(String description, LocalDateTime start, LocalDateTime end)
+            throws UserInputException {
+        if (!end.isAfter(start)) {
+            throw new UserInputException(ErrorCode.EVENT_END_NOT_AFTER_START);
+        }
+        return new Event(description, start, end);
+    }
+
+    private static LocalDateTime parseDateTime(String value) {
+        try {
+            return LocalDateTime.parse(value, ISO_DATE_TIME);
+        } catch (DateTimeParseException exception) {
+            return LocalDateTime.parse(value, SLASH_DATE_TIME);
+        }
+    }
+
+    private static LocalDate parseDate(String value) {
+        try {
+            return LocalDate.parse(value, ISO_DATE);
+        } catch (DateTimeParseException exception) {
+            return LocalDate.parse(value, SLASH_DATE);
+        }
+    }
+
+    private static LocalDateTime parseEventDateTime(String value, ErrorCode timeError)
+            throws UserInputException {
+        String[] parts = value.split("\\s+", -1);
+        if (parts.length != 2) {
+            throw new UserInputException(ErrorCode.EVENT_DATE_INVALID);
         }
 
+        LocalDate date;
+        try {
+            date = parseDate(parts[0]);
+        } catch (DateTimeParseException exception) {
+            throw new UserInputException(ErrorCode.EVENT_DATE_INVALID);
+        }
+        return LocalDateTime.of(date, parseTime(parts[1], timeError));
+    }
+
+    private static LocalTime parseTime(String value, ErrorCode errorCode) throws UserInputException {
+        try {
+            return LocalTime.parse(value, TIME);
+        } catch (DateTimeParseException exception) {
+            throw new UserInputException(errorCode);
+        }
+    }
+
+    private static MarkerLocation findSingleMarker(String body, Pattern pattern, String marker,
+            ErrorCode missingMarkerError) throws UserInputException {
+        MarkerLocation location = findOptionalMarker(body, pattern, marker);
+        if (location == null) {
+            throw new UserInputException(missingMarkerError);
+        }
+        return location;
+    }
+
+    private static MarkerLocation findOptionalMarker(String body, Pattern pattern, String marker)
+            throws UserInputException {
+        Matcher matcher = pattern.matcher(body);
+        if (!matcher.find()) {
+            return null;
+        }
         MarkerLocation location = new MarkerLocation(matcher.start(), matcher.end());
         if (matcher.find()) {
             throw new UserInputException(ErrorCode.DUPLICATE_MARKER, marker);
@@ -173,17 +239,14 @@ public final class TaskParser {
         return location;
     }
 
-    /**
-     * Creates a pattern that matches a complete marker token rather than a
-     * marker-like substring such as {@code /bye}.
-     */
+    private static DateTimeFormatter strictFormatter(String pattern) {
+        return DateTimeFormatter.ofPattern(pattern).withResolverStyle(ResolverStyle.STRICT);
+    }
+
     private static Pattern markerPattern(String marker) {
         return Pattern.compile("(?<!\\S)" + Pattern.quote(marker) + "(?!\\S)");
     }
 
-    /**
-     * Stores the character range occupied by a commandName marker.
-     */
     private record MarkerLocation(int start, int end) {
     }
 }

@@ -12,6 +12,8 @@ public enum ErrorCode {
     DEADLINE_DESCRIPTION_MISSING,
     /** A deadline commandName omitted the value after its {@code /by} marker. */
     DEADLINE_BY_VALUE_MISSING,
+    /** A deadline has an invalid date or time value. */
+    DEADLINE_DATE_INVALID,
     /** An event commandName omitted its {@code /from} marker. */
     EVENT_FROM_MARKER_MISSING,
     /** An event commandName omitted its {@code /to} marker. */
@@ -24,6 +26,14 @@ public enum ErrorCode {
     EVENT_FROM_VALUE_MISSING,
     /** An event commandName omitted the value after its {@code /to} marker. */
     EVENT_TO_VALUE_MISSING,
+    /** An event has an invalid date value. */
+    EVENT_DATE_INVALID,
+    /** An event has an invalid start time value. */
+    EVENT_START_TIME_INVALID,
+    /** An event has an invalid end time value. */
+    EVENT_END_TIME_INVALID,
+    /** An event ends at or before its start. */
+    EVENT_END_NOT_AFTER_START,
     /** A commandName repeated a marker that must occur once. */
     DUPLICATE_MARKER,
     /** A task operation omitted its task ID. */
@@ -39,5 +49,9 @@ public enum ErrorCode {
     /** A task operation refers to an unavailable task ID. */
     TASK_NOT_FOUND,
     /** The supplied commandName name is not recognized. */
-    UNKNOWN_COMMAND
+    UNKNOWN_COMMAND,
+    /** Stored task data is malformed. */
+    STORAGE_MALFORMED,
+    /** The stored task data cannot be read. */
+    STORAGE_UNREADABLE
 }
