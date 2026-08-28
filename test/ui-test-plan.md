@@ -372,16 +372,15 @@ bye
 You didn't enter a command. Try "list" to view your tasks.
 ```
 
-## Test case 18: Keep list and bye trailing arguments permissive
+## Test case 18: Keep list without a date compatible
 
-- Aim: Verify that existing command compatibility is retained.
+- Aim: Verify that `list` without a date still shows every task.
 
 ### Inputs
 
 ```text
 todo borrow book
-list ignored arguments
-bye ignored arguments
+list
 bye
 ```
 
@@ -393,4 +392,111 @@ Got it. I've added this task:
 Now you have 1 tasks in the list.
 Here's your tasks:
 1.[T][ ] borrow book
+```
+
+## Test case 19: List matching tasks by either date format
+
+- Aim: Verify that date-filtered lists include deadlines and overlapping events while preserving task IDs.
+
+### Inputs
+
+```text
+todo unplanned task
+deadline due today /by 2019-12-02 1800
+deadline due tomorrow /by 2019-12-03 1800
+event meeting /on 2/12/2019 /from 1400 /to 1600
+event conference /from 2019-12-01 0900 /to 2019-12-03 1700
+list 2019-12-02
+list 3/12/2019
+bye
+```
+
+### Expected output
+
+```text
+Got it. I've added this task:
+  [T][ ] unplanned task
+Now you have 1 tasks in the list.
+Got it. I've added this task:
+  [D][ ] due today (by: Dec 02 2019, 6:00 PM)
+Now you have 2 tasks in the list.
+Got it. I've added this task:
+  [D][ ] due tomorrow (by: Dec 03 2019, 6:00 PM)
+Now you have 3 tasks in the list.
+Got it. I've added this task:
+  [E][ ] meeting (on: Dec 02 2019, from: 2:00 PM to: 4:00 PM)
+Now you have 4 tasks in the list.
+Got it. I've added this task:
+  [E][ ] conference (from: Dec 01 2019, 9:00 AM to: Dec 03 2019, 5:00 PM)
+Now you have 5 tasks in the list.
+Here's your tasks on 2019-12-02:
+2.[D][ ] due today (by: Dec 02 2019, 6:00 PM)
+4.[E][ ] meeting (on: Dec 02 2019, from: 2:00 PM to: 4:00 PM)
+5.[E][ ] conference (from: Dec 01 2019, 9:00 AM to: Dec 03 2019, 5:00 PM)
+Here's your tasks on 2019-12-03:
+3.[D][ ] due tomorrow (by: Dec 03 2019, 6:00 PM)
+5.[E][ ] conference (from: Dec 01 2019, 9:00 AM to: Dec 03 2019, 5:00 PM)
+```
+
+## Test case 20: Reject invalid date queries and report no matches
+
+- Aim: Verify strict query-date parsing and the empty filtered-list message.
+
+### Inputs
+
+```text
+todo unplanned task
+list 4/12/2019
+list 2019-02-30
+list 2019-12-02 1800
+bye
+```
+
+### Expected output
+
+```text
+Got it. I've added this task:
+  [T][ ] unplanned task
+Now you have 1 tasks in the list.
+There are no tasks on 2019-12-04.
+Enter a valid date using YYYY-MM-DD or D/M/YYYY. Try: list 2019-12-02
+Enter a valid date using YYYY-MM-DD or D/M/YYYY. Try: list 2019-12-02
+```
+
+## Test case 21: Filter persisted tasks by date
+
+- Aim: Verify that date-filtering works after typed tasks are loaded from storage.
+
+### Inputs (session 1)
+
+```text
+deadline report /by 2/12/2019 1800
+event workshop /from 2019-12-01 1500 /to 2019-12-03 1100
+bye
+```
+
+### Expected output (session 1)
+
+```text
+Got it. I've added this task:
+  [D][ ] report (by: Dec 02 2019, 6:00 PM)
+Now you have 1 tasks in the list.
+Got it. I've added this task:
+  [E][ ] workshop (from: Dec 01 2019, 3:00 PM to: Dec 03 2019, 11:00 AM)
+Now you have 2 tasks in the list.
+```
+
+### Inputs (session 2)
+
+```text
+list 2019-12-02
+bye
+```
+
+### Expected output (session 2)
+
+```text
+Here's your tasks on 2019-12-02:
+1.[D][ ] report (by: Dec 02 2019, 6:00 PM)
+2.[E][ ] workshop (from: Dec 01 2019, 3:00 PM to: Dec 03 2019, 11:00 AM)
 ```
