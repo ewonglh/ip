@@ -48,6 +48,12 @@ public class Event extends Task {
         this.endTime = endTime;
     }
 
+    /**
+     * Returns whether this event spans the specified date, including both endpoint dates.
+     *
+     * @param date Date to check.
+     * @return True if this event spans the specified date.
+     */
     @Override
     public boolean occursOn(LocalDate date) {
         LocalDate startDate = startTime.toLocalDate();
