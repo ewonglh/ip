@@ -1,9 +1,5 @@
 package megia;
 
-import java.time.LocalDate;
-import java.util.Optional;
-import java.util.Properties;
-
 import megia.exception.ErrorCode;
 import megia.exception.MegiaException;
 import megia.exception.StorageException;
@@ -16,6 +12,10 @@ import megia.service.LocalizationService;
 import megia.service.PropertiesService;
 import megia.service.TaskParser;
 import megia.ui.ConsoleUi;
+
+import java.time.LocalDate;
+import java.util.Optional;
+import java.util.Properties;
 
 /**
  * Coordinates the Megia command-line task manager.
