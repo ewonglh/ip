@@ -95,7 +95,7 @@ public final class LocalStorageService {
      *
      * @param taskStorage Tasks to save.
      */
-    public void saveTaskData(TaskStorage taskStorage) {
+    public void saveTaskData(TaskStorage taskStorage) throws StorageException {
         StringBuilder output = new StringBuilder();
         for (Task task : taskStorage) {
             output.append(task.encode()).append("\n");
@@ -107,7 +107,7 @@ public final class LocalStorageService {
                 StandardOpenOption.WRITE)) {
             writer.write(output.toString().strip());
         } catch (IOException exception) {
-            throw new RuntimeException(exception);
+            throw new StorageException(taskStoragePath, 0);
         }
     }
 }

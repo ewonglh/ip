@@ -49,6 +49,24 @@ public class Event extends Task {
     }
 
     /**
+     * Returns the event start date and time.
+     *
+     * @return Event start date and time.
+     */
+    public LocalDateTime getStartTime() {
+        return startTime;
+    }
+
+    /**
+     * Returns the event end date and time.
+     *
+     * @return Event end date and time.
+     */
+    public LocalDateTime getEndTime() {
+        return endTime;
+    }
+
+    /**
      * Returns whether this event spans the specified date, including both endpoint dates.
      *
      * @param date Date to check.

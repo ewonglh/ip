@@ -86,4 +86,13 @@ public class Task {
     public boolean isDone() {
         return isDone;
     }
+
+    /**
+     * Returns the task description.
+     *
+     * @return Task description.
+     */
+    public String getDescription() {
+        return description;
+    }
 }
