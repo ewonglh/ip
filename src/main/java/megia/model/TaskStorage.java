@@ -3,6 +3,7 @@ package megia.model;
 import java.time.LocalDate;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -64,6 +65,19 @@ public class TaskStorage extends Storage<Task> implements Iterable<Task> {
      */
     public Task deleteTask(int taskId) throws TaskNotFoundException {
         return items.remove(getTaskIndex(taskId, "delete"));
+    }
+
+    /**
+     * Restores a task at its original one-based position.
+     *
+     * @param taskId One-based position at which to restore the task.
+     * @param task Task to restore.
+     */
+    public void restoreTask(int taskId, Task task) {
+        if (taskId < 1 || taskId > items.size() + 1) {
+            throw new IllegalArgumentException("Task restore position is invalid");
+        }
+        items.add(taskId - 1, Objects.requireNonNull(task));
     }
 
     /**

@@ -4,6 +4,7 @@ import java.time.LocalDate;
 import java.util.Optional;
 
 import megia.exception.MegiaException;
+import megia.exception.StorageException;
 import megia.model.CommandResult;
 import megia.model.ParsedCommand;
 import megia.model.Task;
@@ -74,7 +75,12 @@ public final class TaskService {
     private CommandResult executeAdd(ParsedCommand command) throws MegiaException {
         Task newTask = taskParser.parseNewTask(command);
         taskStorage.addTask(newTask);
-        localStorageService.saveTaskData(taskStorage);
+        try {
+            localStorageService.saveTaskData(taskStorage);
+        } catch (StorageException exception) {
+            taskStorage.deleteTask(taskStorage.getTaskCount());
+            throw exception;
+        }
         return new CommandResult.TaskMutation(
                 CommandResult.MutationType.ADD,
                 new TaskEntry(taskStorage.getTaskCount(), newTask),
@@ -88,10 +94,24 @@ public final class TaskService {
             case "unmark" -> taskStorage.unmarkTask(taskId);
             default -> taskStorage.deleteTask(taskId);
         };
-        localStorageService.saveTaskData(taskStorage);
+        try {
+            localStorageService.saveTaskData(taskStorage);
+        } catch (StorageException exception) {
+            rollbackMutation(command.commandName(), taskId, task);
+            throw exception;
+        }
         return new CommandResult.TaskMutation(
                 CommandResult.MutationType.valueOf(command.commandName().toUpperCase()),
                 new TaskEntry(taskId, task),
                 taskStorage.getTaskCount());
+    }
+
+    private void rollbackMutation(String commandName, int taskId, Task task) {
+        switch (commandName) {
+            case "mark" -> task.markAsNotDone();
+            case "unmark" -> task.markAsDone();
+            case "delete" -> taskStorage.restoreTask(taskId, task);
+            default -> throw new IllegalArgumentException("Unsupported mutation: " + commandName);
+        }
     }
 }
