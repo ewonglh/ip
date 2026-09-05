@@ -1,8 +1,8 @@
 # Megia
 
-Megia is a command-line task manager written in Java 25. It supports todos,
-deadlines, and events, with localized and corrective error messages for invalid
-input.
+Megia is a Java 25 task manager with a command-line interface and a JavaFX
+chatbot interface. It supports todos, deadlines, and events, with localized and
+corrective error messages for invalid input.
 
 ## Features
 
@@ -10,6 +10,8 @@ input.
 - List stored tasks
 - Mark and unmark tasks
 - English and Chinese localization
+- A JavaFX chatbot transcript with responsive task cards
+- User-selectable profile image with local persistence
 - Specific error messages that explain how to correct invalid commands
 
 ## Commands
@@ -60,6 +62,19 @@ javac --release 25 -d out $(find src/main/java -name '*.java')
 java --class-path out:src/main/resources megia.Megia
 ```
 
+## Running the JavaFX chatbot
+
+Use the Gradle `runGui` task from a Java 25 environment:
+
+```bash
+./gradlew runGui
+```
+
+The chatbot opens a scrollable conversation. Enter the same commands listed
+below, or use a starter action. The language selector switches between English
+and Chinese immediately and remembers the choice through Java Preferences. The
+profile-image button accepts a local PNG, JPG, GIF, or BMP image.
+
 ## Running the console tests
 
 ```bash
@@ -70,16 +85,38 @@ python3 .codex/skills/test-ui/scripts/run_ui_tests.py \
 The test runner compiles the project using Java 25 and executes each console
 test in a fresh process.
 
+## Running the verification suite
+
+Run the standard unit tests and Checkstyle with:
+
+```bash
+./gradlew check
+```
+
+On a desktop-capable environment, run the JavaFX smoke test separately:
+
+```bash
+./gradlew guiTest
+```
+
 ## Localization
 
-Set the language in `src/main/resources/application.properties`:
+The initial language comes from `src/main/resources/application.properties`:
 
 ```properties
 language=en
 ```
 
-Use `en` for English or `cn` for Chinese. If the configuration cannot be
-loaded, Megia falls back to English.
+Use `en` for English or `cn` for Chinese. After the first GUI or console run,
+the shared Java Preferences value takes precedence. Missing, invalid, or
+unavailable preferences fall back to English.
+
+## Scope boundaries
+
+Megia uses the deterministic command language shown in the command table. The
+chatbot does not provide free-form natural-language intent recognition, remote
+AI, voice input, streaming responses, persistent chat transcripts, cloud sync,
+themes, or a calendar dashboard.
 
 ## AI use declaration
 - Coding harness/agent: Codex CLI

@@ -42,7 +42,9 @@ sourceSets {
 }
 
 test {
-    useJUnitPlatform()
+    useJUnitPlatform {
+        excludeTags 'gui'
+    }
 
     testLogging {
         events 'passed', 'skipped', 'failed'
@@ -53,6 +55,17 @@ test {
         showStackTraces = true
         showStandardStreams = false
     }
+}
+
+tasks.register('guiTest', Test) {
+    group = 'verification'
+    description = 'Runs desktop-capable JavaFX GUI smoke tests.'
+    testClassesDirs = sourceSets.test.output.classesDirs
+    classpath = sourceSets.test.runtimeClasspath
+    useJUnitPlatform {
+        includeTags 'gui'
+    }
+    shouldRunAfter test
 }
 
 application {
