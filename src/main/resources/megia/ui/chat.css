@@ -22,6 +22,18 @@
     -fx-font-size: 14px;
 }
 
+.language-label {
+    -fx-text-fill: #c9c5e8;
+    -fx-font-size: 12px;
+}
+
+.language-choice {
+    -fx-background-color: #3b365f;
+    -fx-border-color: #716ba4;
+    -fx-border-radius: 10px;
+    -fx-background-radius: 10px;
+}
+
 .transcript {
     -fx-background-color: transparent;
     -fx-padding: 20px 28px;

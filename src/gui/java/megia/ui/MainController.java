@@ -14,6 +14,7 @@ import javafx.geometry.Pos;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.ButtonType;
+import javafx.scene.control.ComboBox;
 import javafx.scene.control.ContentDisplay;
 import javafx.scene.control.Label;
 import javafx.scene.control.ListCell;
@@ -46,21 +47,40 @@ public final class MainController {
     private static final double BUBBLE_WIDTH_FRACTION = 0.78;
     private static final double AVATAR_SIZE = 40;
     private static final double MESSAGE_GAP = 10;
+    private static final List<LanguageChoice> LANGUAGE_CHOICES = List.of(
+            new LanguageChoice("en", "language_english"),
+            new LanguageChoice("cn", "language_chinese"));
 
     @FXML
     private ListView<TranscriptMessage> transcriptList;
+    @FXML
+    private Label titleLabel;
+    @FXML
+    private Label subtitleLabel;
+    @FXML
+    private Label languageLabel;
+    @FXML
+    private ComboBox<LanguageChoice> languageChoiceBox;
     @FXML
     private TextField commandInput;
     @FXML
     private Button sendButton;
     @FXML
     private Button userImageButton;
+    @FXML
+    private Button starterTodoButton;
+    @FXML
+    private Button starterListButton;
+    @FXML
+    private Button starterFindButton;
 
     private final CommandExecutor commandExecutor;
     private final String startupError;
     private final ProfileImageService profileImageService;
+    private final Runnable localizationListener = this::refreshLocalizedControls;
     private Image assistantAvatar;
     private Image userAvatar;
+    private boolean isRefreshingLanguageChoice;
 
     /**
      * Creates a chatbot controller with its command executor and optional startup error.
@@ -86,7 +106,15 @@ public final class MainController {
     public void initialize() {
         assistantAvatar = AvatarFactory.createAssistantAvatar();
         userAvatar = profileImageService.loadUserImage().orElseGet(AvatarFactory::createUserAvatar);
-        userImageButton.setText(LocalizationService.getMessage("profile_image_choose"));
+        languageChoiceBox.getItems().setAll(LANGUAGE_CHOICES);
+        languageChoiceBox.getSelectionModel().selectedItemProperty().addListener((ignored, oldChoice,
+                newChoice) -> {
+                    if (!isRefreshingLanguageChoice && newChoice != null) {
+                        LocalizationService.setLanguage(newChoice.code());
+                    }
+                });
+        LocalizationService.addLanguageChangeListener(localizationListener);
+        refreshLocalizedControls();
         transcriptList.setCellFactory(ignored -> new TranscriptCell());
         appendMessage(false, LocalizationService.getMessage("greeting"), List.of());
         if (startupError != null) {
@@ -174,12 +202,42 @@ public final class MainController {
     }
 
     /**
+     * Removes this controller's language listener when the application closes.
+     */
+    public void dispose() {
+        LocalizationService.removeLanguageChangeListener(localizationListener);
+    }
+
+    /**
      * Displays a localized system error in the assistant side of the transcript.
      *
      * @param message Error message to display.
      */
     public void showErrorMessage(String message) {
         appendMessage(false, message, List.of());
+    }
+
+    private void refreshLocalizedControls() {
+        titleLabel.setText(LocalizationService.getMessage("app_title"));
+        subtitleLabel.setText(LocalizationService.getMessage("app_subtitle"));
+        languageLabel.setText(LocalizationService.getMessage("language_label"));
+        starterTodoButton.setText(LocalizationService.getMessage("starter_todo"));
+        starterListButton.setText(LocalizationService.getMessage("starter_list"));
+        starterFindButton.setText(LocalizationService.getMessage("starter_find"));
+        commandInput.setPromptText(LocalizationService.getMessage("command_prompt"));
+        sendButton.setText(LocalizationService.getMessage("send"));
+        userImageButton.setText(LocalizationService.getMessage("profile_image_choose"));
+
+        isRefreshingLanguageChoice = true;
+        try {
+            languageChoiceBox.getItems().setAll(LANGUAGE_CHOICES);
+            LANGUAGE_CHOICES.stream()
+                    .filter(choice -> choice.code().equals(LocalizationService.getLanguage()))
+                    .findFirst()
+                    .ifPresent(choice -> languageChoiceBox.getSelectionModel().select(choice));
+        } finally {
+            isRefreshingLanguageChoice = false;
+        }
     }
 
     private void setStarterCommand(String command) {
@@ -316,6 +374,13 @@ public final class MainController {
             boolean isUser, String text, List<TaskEntry> tasks, boolean areTasksActionable) {
         private TranscriptMessage {
             tasks = List.copyOf(tasks);
+        }
+    }
+
+    private record LanguageChoice(String code, String labelKey) {
+        @Override
+        public String toString() {
+            return LocalizationService.getMessage(labelKey);
         }
     }
 

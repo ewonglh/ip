@@ -3,8 +3,11 @@ package megia.service;
 import java.util.IllegalFormatException;
 import java.util.Locale;
 import java.util.MissingResourceException;
+import java.util.Objects;
 import java.util.Properties;
 import java.util.ResourceBundle;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.prefs.Preferences;
 
 import megia.exception.ErrorCode;
 
@@ -13,16 +16,25 @@ import megia.exception.ErrorCode;
  */
 public final class LocalizationService {
     private static final String DEFAULT_LANGUAGE = "en";
+    private static final String LANGUAGE_PREFERENCE_KEY = "language";
     private static final ResourceBundle.Control BUNDLE_CONTROL =
             ResourceBundle.Control.getNoFallbackControl(ResourceBundle.Control.FORMAT_PROPERTIES);
     private static final Properties PROPERTIES = PropertiesService.getProperties();
-    private static final Locale LOCALE = resolveLocale(PROPERTIES.getProperty("language"));
-    private static final ResourceBundle ENGLISH_MESSAGES = loadBundle(
-            "i18n.messages.messages", Locale.of(DEFAULT_LANGUAGE));
-    private static final ResourceBundle ENGLISH_EXCEPTIONS = loadBundle(
-            "i18n.exceptions.exceptions", Locale.of(DEFAULT_LANGUAGE));
-    private static final ResourceBundle MESSAGES = loadBundle("i18n.messages.messages", LOCALE);
-    private static final ResourceBundle EXCEPTIONS = loadBundle("i18n.exceptions.exceptions", LOCALE);
+    private static final Preferences LANGUAGE_PREFERENCES = getPreferences();
+    private static final CopyOnWriteArrayList<Runnable> LANGUAGE_LISTENERS =
+            new CopyOnWriteArrayList<>();
+    private static final ResourceBundle ENGLISH_MESSAGES;
+    private static final ResourceBundle ENGLISH_EXCEPTIONS;
+    private static volatile Locale locale;
+    private static volatile ResourceBundle messages;
+    private static volatile ResourceBundle exceptions;
+
+    static {
+        ENGLISH_MESSAGES = loadBundle("i18n.messages.messages", Locale.of(DEFAULT_LANGUAGE));
+        ENGLISH_EXCEPTIONS = loadBundle("i18n.exceptions.exceptions", Locale.of(DEFAULT_LANGUAGE));
+        locale = resolveLocale(resolveInitialLanguage());
+        reloadBundles();
+    }
 
     private LocalizationService() {
     }
@@ -35,9 +47,10 @@ public final class LocalizationService {
      * @return Formatted localized error message.
      */
     public static String getException(ErrorCode errorCode, Object... arguments) {
-        String template = getLocalizedValue(EXCEPTIONS, ENGLISH_EXCEPTIONS, errorCode.name());
+        Locale currentLocale = locale;
+        String template = getLocalizedValue(exceptions, ENGLISH_EXCEPTIONS, errorCode.name());
         try {
-            return String.format(LOCALE, template, arguments);
+            return String.format(currentLocale, template, arguments);
         } catch (IllegalFormatException exception) {
             System.err.printf("Invalid format for exception message '%s': %s%n",
                     errorCode, exception.getMessage());
@@ -52,7 +65,74 @@ public final class LocalizationService {
      * @return Localized message text.
      */
     public static String getMessage(String key) {
-        return getLocalizedValue(MESSAGES, ENGLISH_MESSAGES, key);
+        return getLocalizedValue(messages, ENGLISH_MESSAGES, key);
+    }
+
+    /**
+     * Returns the active two-letter language code.
+     *
+     * @return Active language code.
+     */
+    public static String getLanguage() {
+        return locale.getLanguage();
+    }
+
+    /**
+     * Changes the active language, persists the selection, and notifies GUI listeners.
+     * Preference write failures are reported diagnostically but do not prevent the in-memory
+     * language change.
+     *
+     * @param language Requested two-letter language code.
+     */
+    public static void setLanguage(String language) {
+        Locale newLocale = resolveLocale(language);
+        boolean hasChanged;
+        synchronized (LocalizationService.class) {
+            hasChanged = !newLocale.equals(locale);
+            locale = newLocale;
+            reloadBundles();
+            persistLanguage(newLocale.getLanguage());
+        }
+        if (hasChanged) {
+            notifyLanguageListeners();
+        }
+    }
+
+    /**
+     * Registers a listener that runs after the active language changes.
+     *
+     * @param listener Callback used to refresh language-sensitive UI.
+     */
+    public static void addLanguageChangeListener(Runnable listener) {
+        LANGUAGE_LISTENERS.add(Objects.requireNonNull(listener));
+    }
+
+    /**
+     * Removes a previously registered language-change listener.
+     *
+     * @param listener Callback to remove.
+     */
+    public static void removeLanguageChangeListener(Runnable listener) {
+        LANGUAGE_LISTENERS.remove(listener);
+    }
+
+    private static String resolveInitialLanguage() {
+        String preferredLanguage = readPreferredLanguage();
+        return preferredLanguage == null
+                ? PROPERTIES.getProperty("language")
+                : preferredLanguage;
+    }
+
+    private static String readPreferredLanguage() {
+        if (LANGUAGE_PREFERENCES == null) {
+            return null;
+        }
+        try {
+            return LANGUAGE_PREFERENCES.get(LANGUAGE_PREFERENCE_KEY, null);
+        } catch (RuntimeException exception) {
+            System.err.println("Unable to read the language preference. Using configuration.");
+            return null;
+        }
     }
 
     private static Locale resolveLocale(String language) {
@@ -68,6 +148,41 @@ public final class LocalizationService {
             System.err.printf("The configured language '%s' is invalid. Using English.%n",
                     configuredLanguage);
             return Locale.of(DEFAULT_LANGUAGE);
+        }
+    }
+
+    private static Preferences getPreferences() {
+        try {
+            return Preferences.userNodeForPackage(LocalizationService.class);
+        } catch (RuntimeException exception) {
+            System.err.println("Unable to access language preferences. Using in-memory settings.");
+            return null;
+        }
+    }
+
+    private static void persistLanguage(String language) {
+        if (LANGUAGE_PREFERENCES == null) {
+            return;
+        }
+        try {
+            LANGUAGE_PREFERENCES.put(LANGUAGE_PREFERENCE_KEY, language);
+        } catch (RuntimeException exception) {
+            System.err.println("Unable to save the language preference.");
+        }
+    }
+
+    private static void reloadBundles() {
+        messages = loadBundle("i18n.messages.messages", locale);
+        exceptions = loadBundle("i18n.exceptions.exceptions", locale);
+    }
+
+    private static void notifyLanguageListeners() {
+        for (Runnable listener : LANGUAGE_LISTENERS) {
+            try {
+                listener.run();
+            } catch (RuntimeException exception) {
+                System.err.println("A language-change listener could not refresh.");
+            }
         }
     }
 
