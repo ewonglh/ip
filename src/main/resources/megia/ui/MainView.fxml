@@ -17,8 +17,14 @@
             <padding>
                 <Insets top="24" right="28" bottom="20" left="28" />
             </padding>
-            <Label text="Megia" styleClass="title" />
-            <Label text="Your focused task companion" styleClass="subtitle" />
+            <HBox alignment="CENTER_LEFT" spacing="16">
+                <VBox spacing="4" HBox.hgrow="ALWAYS">
+                    <Label text="Megia" styleClass="title" />
+                    <Label text="Your focused task companion" styleClass="subtitle" />
+                </VBox>
+                <Button fx:id="userImageButton" onAction="#handleChooseUserImage"
+                        styleClass="profile-button" />
+            </HBox>
         </VBox>
     </top>
     <center>
