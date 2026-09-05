@@ -5,6 +5,7 @@ import java.io.BufferedWriter;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.nio.file.StandardOpenOption;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeParseException;
@@ -95,19 +96,43 @@ public final class LocalStorageService {
      *
      * @param taskStorage Tasks to save.
      */
-    public void saveTaskData(TaskStorage taskStorage) {
+    public void saveTaskData(TaskStorage taskStorage) throws StorageException {
         StringBuilder output = new StringBuilder();
         for (Task task : taskStorage) {
             output.append(task.encode()).append("\n");
         }
-        try (BufferedWriter writer = Files.newBufferedWriter(
-                Path.of(taskStoragePath),
-                StandardOpenOption.CREATE,
-                StandardOpenOption.TRUNCATE_EXISTING,
-                StandardOpenOption.WRITE)) {
-            writer.write(output.toString().strip());
+        Path storagePath = Path.of(taskStoragePath).toAbsolutePath();
+        Path temporaryPath = null;
+        try {
+            temporaryPath = Files.createTempFile(
+                    storagePath.getParent(), storagePath.getFileName().toString(), ".tmp");
+            try (BufferedWriter writer = Files.newBufferedWriter(
+                    temporaryPath,
+                    StandardOpenOption.CREATE,
+                    StandardOpenOption.TRUNCATE_EXISTING,
+                    StandardOpenOption.WRITE)) {
+                writer.write(output.toString().strip());
+            }
+            moveIntoPlace(temporaryPath, storagePath);
         } catch (IOException exception) {
-            throw new RuntimeException(exception);
+            throw new StorageException(taskStoragePath, 0);
+        } finally {
+            if (temporaryPath != null) {
+                try {
+                    Files.deleteIfExists(temporaryPath);
+                } catch (IOException exception) {
+                    // The completed save is still valid when temporary-file cleanup fails.
+                }
+            }
+        }
+    }
+
+    private static void moveIntoPlace(Path temporaryPath, Path storagePath) throws IOException {
+        try {
+            Files.move(temporaryPath, storagePath,
+                    StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
+        } catch (java.nio.file.AtomicMoveNotSupportedException exception) {
+            Files.move(temporaryPath, storagePath, StandardCopyOption.REPLACE_EXISTING);
         }
     }
 }

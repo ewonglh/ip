@@ -2,10 +2,14 @@ package megia.ui;
 
 import java.io.InputStream;
 import java.io.PrintStream;
+import java.nio.charset.StandardCharsets;
 import java.util.Optional;
 import java.util.Scanner;
+import java.util.stream.Collectors;
 
 import megia.exception.MegiaException;
+import megia.model.CommandResult;
+import megia.model.TaskEntry;
 import megia.service.LocalizationService;
 
 /**
@@ -45,7 +49,7 @@ public final class ConsoleUi implements AutoCloseable {
             PrintStream standardOutput,
             PrintStream errorOutput) {
         this.userInput = new Scanner(inputStream);
-        this.standardOutput = standardOutput;
+        this.standardOutput = new PrintStream(standardOutput, true, StandardCharsets.UTF_8);
         this.errorOutput = errorOutput;
     }
 
@@ -81,6 +85,22 @@ public final class ConsoleUi implements AutoCloseable {
     }
 
     /**
+     * Displays a structured command result using the existing console wording.
+     *
+     * @param result Result produced by the shared command pipeline.
+     */
+    public void showResult(CommandResult result) {
+        switch (result) {
+            case CommandResult.TaskList taskList -> showTaskList(taskList);
+            case CommandResult.TaskMutation mutation -> showTaskMutation(mutation);
+            case CommandResult.Empty ignored -> showMessage(LocalizationService.getMessage("empty"));
+            case CommandResult.Exit ignored -> {
+                // The application loop handles exit results without output.
+            }
+        }
+    }
+
+    /**
      * Displays a localized message for a recoverable application error.
      *
      * @param exception Error to display.
@@ -105,6 +125,53 @@ public final class ConsoleUi implements AutoCloseable {
      */
     public void showFarewell() {
         showMessage(LocalizationService.getMessage("farewell"));
+    }
+
+    private void showTaskList(CommandResult.TaskList taskList) {
+        String message;
+        if (taskList.entries().isEmpty()) {
+            message = switch (taskList.query().type()) {
+                case ALL -> LocalizationService.getMessage("task_storage_empty");
+                case DATE -> String.format(
+                        LocalizationService.getMessage("task_storage_date_empty"),
+                        taskList.query().value());
+                case FIND -> String.format(
+                        LocalizationService.getMessage("task_storage_find_empty"),
+                        taskList.query().value());
+            };
+        } else {
+            String heading = switch (taskList.query().type()) {
+                case ALL -> LocalizationService.getMessage("task_storage_list");
+                case DATE -> String.format(
+                        LocalizationService.getMessage("task_storage_date_list"),
+                        taskList.query().value());
+                case FIND -> LocalizationService.getMessage("task_storage_find_list");
+            };
+            message = heading + "\n" + formatTasks(taskList.entries());
+        }
+        showMessage(message);
+    }
+
+    private void showTaskMutation(CommandResult.TaskMutation mutation) {
+        if (mutation.operation() == CommandResult.MutationType.ADD) {
+            showMessage(
+                    LocalizationService.getMessage("task_storage_add")
+                            + "\n  " + mutation.task().task()
+                            + "\n"
+                            + String.format(
+                                    LocalizationService.getMessage("task_storage_add_2"),
+                                    mutation.taskCount()));
+            return;
+        }
+        String messageKey = "task_storage_" + mutation.operation().name().toLowerCase();
+        showMessage(LocalizationService.getMessage(messageKey) + "\n" + mutation.task().task());
+    }
+
+    private static String formatTasks(Iterable<TaskEntry> entries) {
+        String taskText = java.util.stream.StreamSupport.stream(entries.spliterator(), false)
+                .map(entry -> entry.id() + "." + entry.task() + "\n")
+                .collect(Collectors.joining());
+        return taskText.strip();
     }
 
     @Override

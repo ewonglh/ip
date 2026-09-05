@@ -38,6 +38,15 @@ public class Deadline extends Task {
     }
 
     /**
+     * Returns the deadline date and time.
+     *
+     * @return Deadline date and time.
+     */
+    public LocalDateTime getDeadline() {
+        return deadline;
+    }
+
+    /**
      * Returns whether this deadline falls on the specified date.
      *
      * @param date Date to check.

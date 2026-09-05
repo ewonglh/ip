@@ -1,20 +1,17 @@
 package megia;
 
-import java.time.LocalDate;
 import java.util.Optional;
 import java.util.Properties;
 
-import megia.exception.ErrorCode;
 import megia.exception.MegiaException;
 import megia.exception.StorageException;
-import megia.exception.UserInputException;
-import megia.model.ParsedCommand;
-import megia.model.Task;
+import megia.model.CommandResult;
 import megia.model.TaskStorage;
+import megia.service.CommandExecutor;
 import megia.service.LocalStorageService;
 import megia.service.LocalizationService;
 import megia.service.PropertiesService;
-import megia.service.TaskParser;
+import megia.service.TaskService;
 import megia.ui.ConsoleUi;
 
 /**
@@ -26,7 +23,7 @@ public final class Megia {
     private final ConsoleUi ui;
     private final LocalStorageService localStorageService;
     private final TaskStorage taskStorage;
-    private final TaskParser taskParser;
+    private final CommandExecutor commandExecutor;
 
     /**
      * Creates an application using the supplied UI, local storage, and task collection.
@@ -42,7 +39,7 @@ public final class Megia {
         this.ui = ui;
         this.localStorageService = localStorageService;
         this.taskStorage = taskStorage;
-        this.taskParser = new TaskParser();
+        this.commandExecutor = new CommandExecutor(new TaskService(taskStorage, localStorageService));
     }
 
     /**
@@ -83,49 +80,11 @@ public final class Megia {
                     break;
                 }
 
-                ParsedCommand command = taskParser.parseCommand(rawInput.get());
-
-                switch (command.commandName()) {
-                    case "list" -> {
-                        Optional<LocalDate> date = taskParser.parseListDate(command);
-                        String taskList = date.map(taskStorage::getTasksOn).orElseGet(taskStorage::toString);
-                        ui.showMessage(taskList);
-                    }
-                    case "find" -> {
-                        String query = taskParser.parseFindQuery(command);
-                        ui.showMessage(taskStorage.findTasks(query));
-                    }
-                    case "bye" -> shouldExit = true;
-                    case "todo", "deadline", "event" -> {
-                        Task newTask = taskParser.parseNewTask(command);
-                        taskStorage.addTask(newTask);
-
-                        ui.showMessage(
-                                LocalizationService.getMessage("task_storage_add")
-                                        + "\n"
-                                        + "  " + newTask
-                                        + "\n"
-                                        + String.format(
-                                                LocalizationService.getMessage("task_storage_add_2"),
-                                                taskStorage.getTaskCount()));
-                        localStorageService.saveTaskData(taskStorage);
-                    }
-                    case "mark", "unmark", "delete" -> {
-                        int taskId = taskParser.parseTaskId(command);
-                        Task task = switch (command.commandName()) {
-                            case "mark" -> taskStorage.markTask(taskId);
-                            case "unmark" -> taskStorage.unmarkTask(taskId);
-                            default -> taskStorage.deleteTask(taskId);
-                        };
-                        String messageKey = "task_storage_" + command.commandName();
-
-                        ui.showMessage(
-                                LocalizationService.getMessage(messageKey) + "\n" + task);
-                        localStorageService.saveTaskData(taskStorage);
-                    }
-                    case "" -> ui.showMessage(
-                            LocalizationService.getMessage("empty"));
-                    default -> throw new UserInputException(ErrorCode.UNKNOWN_COMMAND, command.commandName());
+                CommandResult result = commandExecutor.execute(rawInput.get());
+                if (result instanceof CommandResult.Exit) {
+                    shouldExit = true;
+                } else {
+                    ui.showResult(result);
                 }
             } catch (MegiaException exception) {
                 ui.showError(exception);
@@ -135,6 +94,10 @@ public final class Megia {
         }
 
         ui.showFarewell();
-        localStorageService.saveTaskData(taskStorage);
+        try {
+            localStorageService.saveTaskData(taskStorage);
+        } catch (StorageException exception) {
+            ui.showError(exception);
+        }
     }
 }
