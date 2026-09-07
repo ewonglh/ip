@@ -41,6 +41,9 @@ public final class LocalizationService {
 
     /**
      * Formats the localized message associated with a structured error.
+     * Arguments are supplied in the order expected by the localized template.
+     * An explicitly null argument array is treated as empty. If formatting fails,
+     * this method returns the unformatted localized template.
      *
      * @param errorCode Error whose message should be retrieved.
      * @param arguments Values interpolated into the message.
@@ -49,8 +52,9 @@ public final class LocalizationService {
     public static String getException(ErrorCode errorCode, Object... arguments) {
         Locale currentLocale = locale;
         String template = getLocalizedValue(exceptions, ENGLISH_EXCEPTIONS, errorCode.name());
+        Object[] formattingArguments = arguments == null ? new Object[0] : arguments;
         try {
-            return String.format(currentLocale, template, arguments);
+            return String.format(currentLocale, template, formattingArguments);
         } catch (IllegalFormatException exception) {
             System.err.printf("Invalid format for exception message '%s': %s%n",
                     errorCode, exception.getMessage());
