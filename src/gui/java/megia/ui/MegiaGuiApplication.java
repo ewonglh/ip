@@ -70,7 +70,10 @@ public final class MegiaGuiApplication extends Application {
         stage.setMinWidth(540);
         stage.setMinHeight(620);
         stage.setScene(scene);
-        stage.setOnCloseRequest(event -> saveTasks());
+        stage.setOnCloseRequest(event -> {
+            saveTasks();
+            mainController.dispose();
+        });
         stage.show();
     }
 

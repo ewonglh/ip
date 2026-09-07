@@ -14,7 +14,8 @@ public abstract class MegiaException extends Exception {
     private final Object[] messageArguments;
 
     /**
-     * Creates an exception with a localized-message key and formatting values.
+     * Creates an exception with a localized-message key and optional formatting values.
+     * An explicitly null argument array is treated as empty.
      *
      * @param errorCode Identifies the message to display.
      * @param messageArguments Values interpolated into the message.
@@ -22,7 +23,7 @@ public abstract class MegiaException extends Exception {
     protected MegiaException(ErrorCode errorCode, Object... messageArguments) {
         super(Objects.requireNonNull(errorCode).name());
         this.errorCode = errorCode;
-        this.messageArguments = messageArguments.clone();
+        this.messageArguments = messageArguments == null ? new Object[0] : messageArguments.clone();
     }
 
     /**

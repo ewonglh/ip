@@ -2,6 +2,7 @@
 
 <?import javafx.geometry.Insets?>
 <?import javafx.scene.control.Button?>
+<?import javafx.scene.control.ComboBox?>
 <?import javafx.scene.control.Label?>
 <?import javafx.scene.control.ListView?>
 <?import javafx.scene.control.TextField?>
@@ -19,11 +20,16 @@
             </padding>
             <HBox alignment="CENTER_LEFT" spacing="16">
                 <VBox spacing="4" HBox.hgrow="ALWAYS">
-                    <Label text="Megia" styleClass="title" />
-                    <Label text="Your focused task companion" styleClass="subtitle" />
+                    <Label fx:id="titleLabel" styleClass="title" />
+                    <Label fx:id="subtitleLabel" styleClass="subtitle" />
                 </VBox>
-                <Button fx:id="userImageButton" onAction="#handleChooseUserImage"
-                        styleClass="profile-button" />
+                <HBox alignment="CENTER_RIGHT" spacing="8">
+                    <Label fx:id="languageLabel" styleClass="language-label" />
+                    <ComboBox fx:id="languageChoiceBox" prefWidth="96"
+                              styleClass="language-choice" />
+                    <Button fx:id="userImageButton" onAction="#handleChooseUserImage"
+                            styleClass="profile-button" />
+                </HBox>
             </HBox>
         </VBox>
     </top>
@@ -36,15 +42,15 @@
                 <Insets top="12" right="28" bottom="24" left="28" />
             </padding>
             <FlowPane hgap="8" vgap="8" styleClass="starter-actions">
-                <Button text="Add a todo" onAction="#handleStarterTodo" />
-                <Button text="Show my tasks" onAction="#handleStarterList" />
-                <Button text="Find a task" onAction="#handleStarterFind" />
+                <Button fx:id="starterTodoButton" onAction="#handleStarterTodo" />
+                <Button fx:id="starterListButton" onAction="#handleStarterList" />
+                <Button fx:id="starterFindButton" onAction="#handleStarterFind" />
             </FlowPane>
             <HBox spacing="10">
                 <TextField fx:id="commandInput" HBox.hgrow="ALWAYS"
                            promptText="Type a command, for example: todo read book"
                            onAction="#handleSend" />
-                <Button fx:id="sendButton" text="Send" defaultButton="true"
+                <Button fx:id="sendButton" defaultButton="true"
                         onAction="#handleSend" />
             </HBox>
         </VBox>
