@@ -168,6 +168,10 @@ public final class TaskParser {
         if (areRequiredMarkersOutOfOrder || isDateMarkerOutOfOrder) {
             throw new UserInputException(ErrorCode.EVENT_MARKERS_OUT_OF_ORDER);
         }
+        assert fromMarker.start() < toMarker.start()
+                : "Validated /from marker must precede /to marker";
+        assert onMarker == null || onMarker.start() < fromMarker.start()
+                : "Validated /on marker must precede /from marker";
         String description = body.substring(0, (onMarker == null ? fromMarker : onMarker).start()).strip();
         if (description.isBlank()) {
             throw new UserInputException(ErrorCode.EVENT_DESCRIPTION_MISSING);

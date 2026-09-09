@@ -12,7 +12,9 @@ import java.time.LocalDate;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
+import megia.exception.ErrorCode;
 import megia.exception.StorageException;
+import megia.exception.UserInputException;
 import megia.model.CommandResult;
 import megia.model.Deadline;
 import megia.model.Event;
@@ -110,5 +112,19 @@ class CommandExecutorTest {
 
         assertThrows(StorageException.class, () -> commandExecutor.execute("todo another task"));
         assertEquals(1, taskStorage.getTaskCount());
+    }
+
+    @Test
+    void execute_eventMarkersOutOfOrder_reportsUserInputError() {
+        LocalStorageService localStorageService = new LocalStorageService(
+                temporaryDirectory.resolve("tasks.csv").toString());
+        CommandExecutor commandExecutor = new CommandExecutor(
+                new TaskService(new TaskStorage(), localStorageService));
+
+        String command = "event meeting /to 2026-09-03 1600 /from 2026-09-03 1400";
+        UserInputException exception = assertThrows(
+                UserInputException.class, () -> commandExecutor.execute(command));
+
+        assertEquals(ErrorCode.EVENT_MARKERS_OUT_OF_ORDER, exception.getErrorCode());
     }
 }

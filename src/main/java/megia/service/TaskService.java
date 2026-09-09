@@ -73,12 +73,17 @@ public final class TaskService {
     }
 
     private CommandResult executeAdd(ParsedCommand command) throws MegiaException {
+        int originalTaskCount = taskStorage.getTaskCount();
         Task newTask = taskParser.parseNewTask(command);
         taskStorage.addTask(newTask);
+        assert taskStorage.getTaskCount() == originalTaskCount + 1
+                : "Adding a task must increase the task count by one";
         try {
             localStorageService.saveTaskData(taskStorage);
         } catch (StorageException exception) {
             taskStorage.deleteTask(taskStorage.getTaskCount());
+            assert taskStorage.getTaskCount() == originalTaskCount
+                    : "Rolling back an added task must restore the task count";
             throw exception;
         }
         return new CommandResult.TaskMutation(
@@ -89,15 +94,23 @@ public final class TaskService {
 
     private CommandResult executeTaskMutation(ParsedCommand command) throws MegiaException {
         int taskId = taskParser.parseTaskId(command);
+        int originalTaskCount = taskStorage.getTaskCount();
         Task task = switch (command.commandName()) {
             case "mark" -> taskStorage.markTask(taskId);
             case "unmark" -> taskStorage.unmarkTask(taskId);
             default -> taskStorage.deleteTask(taskId);
         };
+        int expectedTaskCount = command.commandName().equals("delete")
+                ? originalTaskCount - 1
+                : originalTaskCount;
+        assert taskStorage.getTaskCount() == expectedTaskCount
+                : "A task mutation must have the expected effect on the task count";
         try {
             localStorageService.saveTaskData(taskStorage);
         } catch (StorageException exception) {
             rollbackMutation(command.commandName(), taskId, task);
+            assert taskStorage.getTaskCount() == originalTaskCount
+                    : "Rolling back a task mutation must restore the task count";
             throw exception;
         }
         return new CommandResult.TaskMutation(
