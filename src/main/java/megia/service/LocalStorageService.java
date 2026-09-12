@@ -10,6 +10,8 @@ import java.nio.file.StandardOpenOption;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeParseException;
 import java.util.Optional;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 import megia.exception.StorageException;
 import megia.model.Deadline;
@@ -101,10 +103,9 @@ public final class LocalStorageService {
      * @param taskStorage Tasks to save.
      */
     public void saveTaskData(TaskStorage taskStorage) throws StorageException {
-        StringBuilder output = new StringBuilder();
-        for (Task task : taskStorage) {
-            output.append(task.encode()).append("\n");
-        }
+        String output = StreamSupport.stream(taskStorage.spliterator(), false)
+                .map(Task::encode)
+                .collect(Collectors.joining("\n"));
         Path storagePath = Path.of(taskStoragePath).toAbsolutePath();
         Path temporaryPath = null;
         try {
@@ -115,7 +116,7 @@ public final class LocalStorageService {
                     StandardOpenOption.CREATE,
                     StandardOpenOption.TRUNCATE_EXISTING,
                     StandardOpenOption.WRITE)) {
-                writer.write(output.toString().strip());
+                writer.write(output);
             }
             moveIntoPlace(temporaryPath, storagePath);
         } catch (IOException exception) {
