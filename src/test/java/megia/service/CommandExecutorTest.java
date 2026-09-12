@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.LocalDate;
 
@@ -23,6 +24,20 @@ import megia.model.Todo;
 class CommandExecutorTest {
     @TempDir
     Path temporaryDirectory;
+
+    @Test
+    void execute_help_returnsHelpResult() throws Exception {
+        TaskStorage taskStorage = new TaskStorage();
+        Path storagePath = temporaryDirectory.resolve("tasks.csv");
+        LocalStorageService localStorageService = new LocalStorageService(
+                storagePath.toString());
+        CommandExecutor commandExecutor = new CommandExecutor(
+                new TaskService(taskStorage, localStorageService));
+
+        assertInstanceOf(CommandResult.Help.class, commandExecutor.execute("help"));
+        assertEquals(0, taskStorage.getTaskCount());
+        assertTrue(Files.notExists(storagePath));
+    }
 
     @Test
     void execute_addThenList_preservesOriginalTaskId() throws Exception {

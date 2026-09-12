@@ -18,6 +18,7 @@ corrective error messages for invalid input.
 
 | Command | Example |
 |---|---|
+| `help` | `help` |
 | `todo <description>` | `todo borrow a book` |
 | `deadline <description> /by <date and time>` | `deadline submit report /by 2019-12-02 1800` |
 | `event <description> /on <date> /from <time> /to <time>` | `event meeting /on 2019-12-02 /from 1400 /to 1600` |
@@ -71,7 +72,9 @@ Use the Gradle `runGui` task from a Java 25 environment:
 ```
 
 The chatbot opens a scrollable conversation. Enter the same commands listed
-below, or use a starter action. The language selector switches between English
+above, or use a starter action. Select the command-help action or enter `help`
+to see the complete command and date/time guide in the active language. The
+language selector switches between English
 and Chinese immediately and remembers the choice through Java Preferences. The
 profile-image button accepts a local PNG, JPG, GIF, or BMP image.
 

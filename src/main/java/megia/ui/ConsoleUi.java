@@ -94,6 +94,7 @@ public final class ConsoleUi implements AutoCloseable {
             case CommandResult.TaskList taskList -> showTaskList(taskList);
             case CommandResult.TaskMutation mutation -> showTaskMutation(mutation);
             case CommandResult.Empty ignored -> showMessage(LocalizationService.getMessage("empty"));
+            case CommandResult.Help ignored -> showMessage(LocalizationService.getMessage("help"));
             case CommandResult.Exit ignored -> {
                 // The application loop handles exit results without output.
             }

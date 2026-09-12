@@ -42,6 +42,7 @@
                 <Insets top="12" right="28" bottom="24" left="28" />
             </padding>
             <FlowPane hgap="8" vgap="8" styleClass="starter-actions">
+                <Button fx:id="starterHelpButton" onAction="#handleStarterHelp" />
                 <Button fx:id="starterTodoButton" onAction="#handleStarterTodo" />
                 <Button fx:id="starterListButton" onAction="#handleStarterList" />
                 <Button fx:id="starterFindButton" onAction="#handleStarterFind" />

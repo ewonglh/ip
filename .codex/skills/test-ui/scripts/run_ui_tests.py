@@ -192,7 +192,7 @@ def is_banner_or_separator(line: str) -> bool:
         or stripped.startswith(("/\\", "\\ \\", "\\_\\", "\\/_/"))
         or stripped in {
             "Hello! I'm Megia.",
-            "What can I do for you?",
+            "What can I do for you? Type \"help\" to see every command.",
             "Bye. Hope to see you again soon.",
         }
     )
@@ -232,6 +232,7 @@ def compile_project(project_root: Path, build_dir: Path) -> None:
         ],
         cwd=project_root,
         text=True,
+        encoding="utf-8",
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
     )
@@ -255,6 +256,7 @@ def run_session(
             cwd=working_dir,
             input=session.inputs.rstrip("\n") + "\n",
             text=True,
+            encoding="utf-8",
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
             timeout=timeout,
@@ -302,6 +304,8 @@ def print_session_record(
 
 def main() -> int:
     """Run the plan and stop at the first failed test case."""
+    sys.stdout.reconfigure(encoding="utf-8")
+    sys.stderr.reconfigure(encoding="utf-8")
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--plan", type=Path, default=Path("test/ui-test-plan.md"))
     parser.add_argument("--project-root", type=Path, default=Path.cwd())

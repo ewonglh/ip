@@ -42,6 +42,7 @@ public final class TaskService {
         return switch (command.commandName()) {
             case "list" -> executeList(command);
             case "find" -> executeFind(command);
+            case "help" -> new CommandResult.Help();
             case "bye" -> new CommandResult.Exit();
             case "todo", "deadline", "event" -> executeAdd(command);
             case "mark", "unmark", "delete" -> executeTaskMutation(command);

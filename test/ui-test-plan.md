@@ -368,7 +368,7 @@ bye
 ### Expected output
 
 ```text
-"remember" is not a recognized command. Available commands: todo, deadline, event, list, find, mark, unmark, delete, bye.
+"remember" is not a recognized command. Enter "help" for all commands and accepted formats.
 You didn't enter a command. Try "list" to view your tasks.
 ```
 
@@ -538,4 +538,34 @@ Here are the matching tasks:
 1.[T][ ] review PR #42 [urgent]
 There are no tasks containing "Review".
 A find command needs a search term. Try: find borrow a book
+```
+
+## Test case 23: Show localized in-app help
+
+- Aim: Verify that users can discover every supported command and input format.
+
+### Inputs
+
+```text
+help
+bye
+```
+
+### Expected output
+
+```text
+Available commands:
+help - show this guide
+todo <description>
+deadline <description> /by <date and time>
+event <description> /on <date> /from <time> /to <time>
+event <description> /from <date and time> /to <date and time>
+list [date]
+find <query>
+mark <task number>
+unmark <task number>
+delete <task number>
+bye - exit Megia
+Dates: YYYY-MM-DD or D/M/YYYY. Times: 24-hour HHmm.
+Use a space to combine a date and time.
 ```

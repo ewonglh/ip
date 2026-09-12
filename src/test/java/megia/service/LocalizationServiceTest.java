@@ -33,8 +33,8 @@ class LocalizationServiceTest {
     @Test
     void getException_withOneArgument_formatsLocalizedMessage() {
         assertEquals(
-                "\"launch\" is not a recognized command. Available commands: todo, deadline, event, "
-                        + "list, find, mark, unmark, delete, bye.",
+                "\"launch\" is not a recognized command. Enter \"help\" for all commands and "
+                        + "accepted formats.",
                 LocalizationService.getException(ErrorCode.UNKNOWN_COMMAND, "launch"));
     }
 
@@ -86,5 +86,26 @@ class LocalizationServiceTest {
 
         assertTrue(message.contains("/by"));
         assertTrue(message.contains("只能出现一次"));
+    }
+
+    @Test
+    void getMessage_help_isLocalizedInEnglishAndChinese() {
+        assertTrue(LocalizationService.getMessage("greeting").contains("\"help\""));
+        assertTrue(LocalizationService.getMessage("help").contains("Available commands:"));
+        assertTrue(LocalizationService.getMessage("help").contains("deadline <description>"));
+        assertTrue(LocalizationService.getMessage("help")
+                .contains("event <description> /from <date and time> /to <date and time>"));
+        assertTrue(LocalizationService.getMessage("help")
+                .contains("Dates: YYYY-MM-DD or D/M/YYYY. Times: 24-hour HHmm."));
+
+        LocalizationService.setLanguage("cn");
+
+        assertTrue(LocalizationService.getMessage("greeting").contains("\"help\""));
+        assertTrue(LocalizationService.getMessage("help").contains("可用指令："));
+        assertTrue(LocalizationService.getMessage("help").contains("deadline <任务说明>"));
+        assertTrue(LocalizationService.getMessage("help")
+                .contains("event <任务说明> /from <日期和时间> /to <日期和时间>"));
+        assertTrue(LocalizationService.getMessage("help")
+                .contains("日期：YYYY-MM-DD 或 D/M/YYYY。时间：24 小时制 HHmm。"));
     }
 }

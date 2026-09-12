@@ -68,6 +68,8 @@ public final class MainController {
     @FXML
     private Button userImageButton;
     @FXML
+    private Button starterHelpButton;
+    @FXML
     private Button starterTodoButton;
     @FXML
     private Button starterListButton;
@@ -148,6 +150,14 @@ public final class MainController {
     }
 
     /**
+     * Places the help command in the command composer.
+     */
+    @FXML
+    public void handleStarterHelp() {
+        setStarterCommand("help");
+    }
+
+    /**
      * Places a todo example in the command composer.
      */
     @FXML
@@ -221,6 +231,7 @@ public final class MainController {
         titleLabel.setText(LocalizationService.getMessage("app_title"));
         subtitleLabel.setText(LocalizationService.getMessage("app_subtitle"));
         languageLabel.setText(LocalizationService.getMessage("language_label"));
+        starterHelpButton.setText(LocalizationService.getMessage("starter_help"));
         starterTodoButton.setText(LocalizationService.getMessage("starter_todo"));
         starterListButton.setText(LocalizationService.getMessage("starter_list"));
         starterFindButton.setText(LocalizationService.getMessage("starter_find"));
@@ -252,6 +263,8 @@ public final class MainController {
             case CommandResult.TaskMutation mutation -> renderMutation(mutation);
             case CommandResult.Empty ignored -> appendMessage(
                     false, LocalizationService.getMessage("empty"), List.of());
+            case CommandResult.Help ignored -> appendMessage(
+                    false, LocalizationService.getMessage("help"), List.of());
             case CommandResult.Exit ignored -> {
                 appendMessage(false, LocalizationService.getMessage("farewell"), List.of());
                 commandInput.setDisable(true);

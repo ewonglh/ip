@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -20,6 +21,7 @@ import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
+import javafx.scene.control.Label;
 import javafx.scene.control.ListView;
 import javafx.scene.control.TextField;
 import javafx.stage.Stage;
@@ -50,7 +52,7 @@ public final class GuiSmokeTest {
     }
 
     /**
-     * Loads FXML, submits a command, renders a card, and refreshes controls after a language switch.
+     * Loads FXML, uses help, renders a card, and refreshes controls after a language switch.
      *
      * @param temporaryDirectory Isolated directory used for task persistence.
      * @throws Exception If the JavaFX operation or assertion fails.
@@ -85,17 +87,35 @@ public final class GuiSmokeTest {
             root.layout();
 
             Button sendButton = (Button) loader.getNamespace().get("sendButton");
+            Button starterHelpButton = (Button) loader.getNamespace().get("starterHelpButton");
             TextField commandInput = (TextField) loader.getNamespace().get("commandInput");
             ListView<?> transcript = (ListView<?>) loader.getNamespace().get("transcriptList");
             assertNotNull(sendButton);
             assertEquals("Send", sendButton.getText());
+            assertEquals("Show help", starterHelpButton.getText());
 
             LocalizationService.setLanguage("cn");
             assertEquals("发送", sendButton.getText());
+            assertEquals("显示帮助", starterHelpButton.getText());
+
+            starterHelpButton.fire();
+            assertEquals("help", commandInput.getText());
+            controller.handleSend();
+            root.applyCss();
+            root.layout();
+            assertEquals(3, transcript.getItems().size());
+            assertTrue(Files.notExists(storagePath));
+            assertTrue(root.lookupAll(".label").stream()
+                    .anyMatch(node -> node instanceof Label label
+                            && label.getText().contains("可用指令：")));
 
             commandInput.setText("todo smoke test");
             controller.handleSend();
-            assertEquals(3, transcript.getItems().size());
+            assertEquals(5, transcript.getItems().size());
+            assertTrue(Files.exists(storagePath));
+            transcript.scrollTo(transcript.getItems().size() - 1);
+            root.applyCss();
+            root.layout();
             assertFalse(root.lookupAll(".task-card").isEmpty());
             assertFalse(root.lookupAll(".task-actions").isEmpty());
 

@@ -8,7 +8,7 @@ import java.util.Objects;
  */
 public sealed interface CommandResult
         permits CommandResult.TaskList, CommandResult.TaskMutation,
-        CommandResult.Empty, CommandResult.Exit {
+        CommandResult.Empty, CommandResult.Help, CommandResult.Exit {
     /**
      * Represents a list, date-filtered list, or search result.
      *
@@ -92,6 +92,12 @@ public sealed interface CommandResult
      * Represents an empty command line.
      */
     record Empty() implements CommandResult {
+    }
+
+    /**
+     * Represents a request for in-app command guidance.
+     */
+    record Help() implements CommandResult {
     }
 
     /**
