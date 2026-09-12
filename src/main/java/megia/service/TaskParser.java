@@ -154,6 +154,15 @@ public final class TaskParser {
     }
 
     private Event parseEvent(String body) throws UserInputException {
+        EventMarkers markers = findAndValidateEventMarkers(body);
+        EventText eventText = extractEventText(body, markers);
+        return markers.onMarker() == null
+                ? parseCompleteDateTimeEvent(eventText)
+                : parseSameDayEvent(eventText);
+    }
+
+    private static EventMarkers findAndValidateEventMarkers(String body)
+            throws UserInputException {
         MarkerLocation onMarker = findOptionalMarker(body, ON_PATTERN, MARKER_ON);
         MarkerLocation fromMarker = findOptionalMarker(body, FROM_PATTERN, MARKER_FROM);
         MarkerLocation toMarker = findOptionalMarker(body, TO_PATTERN, MARKER_TO);
@@ -168,40 +177,59 @@ public final class TaskParser {
         if (areRequiredMarkersOutOfOrder || isDateMarkerOutOfOrder) {
             throw new UserInputException(ErrorCode.EVENT_MARKERS_OUT_OF_ORDER);
         }
-        String description = body.substring(0, (onMarker == null ? fromMarker : onMarker).start()).strip();
+        return new EventMarkers(onMarker, fromMarker, toMarker);
+    }
+
+    private static EventText extractEventText(String body, EventMarkers markers)
+            throws UserInputException {
+        MarkerLocation firstMarker = markers.onMarker() == null
+                ? markers.fromMarker()
+                : markers.onMarker();
+        String description = body.substring(0, firstMarker.start()).strip();
         if (description.isBlank()) {
             throw new UserInputException(ErrorCode.EVENT_DESCRIPTION_MISSING);
         }
-        String dateText = onMarker == null
+        String dateText = markers.onMarker() == null
                 ? null
-                : body.substring(onMarker.end(), fromMarker.start()).strip();
-        String startText = body.substring(fromMarker.end(), toMarker.start()).strip();
-        String endText = body.substring(toMarker.end()).strip();
+                : body.substring(markers.onMarker().end(), markers.fromMarker().start()).strip();
+        String startText = body.substring(
+                markers.fromMarker().end(), markers.toMarker().start()).strip();
+        String endText = body.substring(markers.toMarker().end()).strip();
         if (startText.isBlank()) {
             throw new UserInputException(ErrorCode.EVENT_FROM_VALUE_MISSING);
         }
         if (endText.isBlank()) {
             throw new UserInputException(ErrorCode.EVENT_TO_VALUE_MISSING);
         }
-        if (onMarker != null) {
-            if (dateText.isBlank()) {
-                throw new UserInputException(ErrorCode.EVENT_DATE_INVALID);
-            }
-            LocalDate date;
-            try {
-                date = parseDate(dateText);
-            } catch (DateTimeParseException exception) {
-                throw new UserInputException(ErrorCode.EVENT_DATE_INVALID);
-            }
-            LocalTime startTime = parseTime(startText, ErrorCode.EVENT_START_TIME_INVALID);
-            LocalTime endTime = parseTime(endText, ErrorCode.EVENT_END_TIME_INVALID);
-            LocalDateTime start = LocalDateTime.of(date, startTime);
-            LocalDateTime end = LocalDateTime.of(date, endTime);
-            return createEvent(description, start, end);
+        return new EventText(description, dateText, startText, endText);
+    }
+
+    private static Event parseSameDayEvent(EventText eventText) throws UserInputException {
+        if (eventText.dateText().isBlank()) {
+            throw new UserInputException(ErrorCode.EVENT_DATE_INVALID);
         }
-        return createEvent(description,
-                parseEventDateTime(startText, ErrorCode.EVENT_START_TIME_INVALID),
-                parseEventDateTime(endText, ErrorCode.EVENT_END_TIME_INVALID));
+        LocalDate date;
+        try {
+            date = parseDate(eventText.dateText());
+        } catch (DateTimeParseException exception) {
+            throw new UserInputException(ErrorCode.EVENT_DATE_INVALID);
+        }
+        LocalTime startTime = parseTime(
+                eventText.startText(), ErrorCode.EVENT_START_TIME_INVALID);
+        LocalTime endTime = parseTime(eventText.endText(), ErrorCode.EVENT_END_TIME_INVALID);
+        return createEvent(
+                eventText.description(),
+                LocalDateTime.of(date, startTime),
+                LocalDateTime.of(date, endTime));
+    }
+
+    private static Event parseCompleteDateTimeEvent(EventText eventText)
+            throws UserInputException {
+        LocalDateTime start = parseEventDateTime(
+                eventText.startText(), ErrorCode.EVENT_START_TIME_INVALID);
+        LocalDateTime end = parseEventDateTime(
+                eventText.endText(), ErrorCode.EVENT_END_TIME_INVALID);
+        return createEvent(eventText.description(), start, end);
     }
 
     private static Event createEvent(String description, LocalDateTime start, LocalDateTime end)
@@ -280,6 +308,19 @@ public final class TaskParser {
 
     private static Pattern markerPattern(String marker) {
         return Pattern.compile("(?<!\\S)" + Pattern.quote(marker) + "(?!\\S)");
+    }
+
+    private record EventMarkers(
+            MarkerLocation onMarker,
+            MarkerLocation fromMarker,
+            MarkerLocation toMarker) {
+    }
+
+    private record EventText(
+            String description,
+            String dateText,
+            String startText,
+            String endText) {
     }
 
     private record MarkerLocation(int start, int end) {

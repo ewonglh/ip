@@ -67,7 +67,11 @@ public final class LocalStorageService {
 
     private static Task getTaskFromLine(String[] data) {
         TaskType taskType = TaskType.valueOf(data[0]);
-        int expectedFieldCount = taskType == TaskType.EVENT ? 5 : taskType == TaskType.DEADLINE ? 4 : 3;
+        int expectedFieldCount = switch (taskType) {
+            case TODO -> 3;
+            case DEADLINE -> 4;
+            case EVENT -> 5;
+        };
         if (data.length != expectedFieldCount || data[2].isBlank() || !isBoolean(data[1])) {
             throw new IllegalArgumentException();
         }
