@@ -7,6 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
@@ -37,6 +38,18 @@ import megia.service.TaskService;
 @Tag("gui")
 public final class GuiSmokeTest {
     private static final long FX_TIMEOUT_SECONDS = 10;
+    private static final List<String> INJECTED_CONTROL_IDS = List.of(
+            "transcriptList",
+            "titleLabel",
+            "subtitleLabel",
+            "languageLabel",
+            "languageChoiceBox",
+            "commandInput",
+            "sendButton",
+            "userImageButton",
+            "starterTodoButton",
+            "starterListButton",
+            "starterFindButton");
 
     /**
      * Starts the JavaFX toolkit once for the GUI test class.
@@ -77,6 +90,10 @@ public final class GuiSmokeTest {
             });
 
             Parent root = loader.load();
+            for (String controlId : INJECTED_CONTROL_IDS) {
+                assertNotNull(loader.getNamespace().get(controlId),
+                        "FXML did not inject " + controlId);
+            }
             Scene scene = new Scene(root);
             scene.getStylesheets().add(
                     GuiSmokeTest.class.getResource("/megia/ui/chat.css").toExternalForm());

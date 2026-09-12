@@ -106,6 +106,7 @@ public final class MainController {
      */
     @FXML
     public void initialize() {
+        assertControlsInjected();
         assistantAvatar = AvatarFactory.createAssistantAvatar();
         userAvatar = profileImageService.loadUserImage().orElseGet(AvatarFactory::createUserAvatar);
         languageChoiceBox.getItems().setAll(LANGUAGE_CHOICES);
@@ -123,6 +124,20 @@ public final class MainController {
             appendMessage(false, startupError, List.of());
         }
         commandInput.requestFocus();
+    }
+
+    private void assertControlsInjected() {
+        assert transcriptList != null : "FXML must inject transcriptList";
+        assert titleLabel != null : "FXML must inject titleLabel";
+        assert subtitleLabel != null : "FXML must inject subtitleLabel";
+        assert languageLabel != null : "FXML must inject languageLabel";
+        assert languageChoiceBox != null : "FXML must inject languageChoiceBox";
+        assert commandInput != null : "FXML must inject commandInput";
+        assert sendButton != null : "FXML must inject sendButton";
+        assert userImageButton != null : "FXML must inject userImageButton";
+        assert starterTodoButton != null : "FXML must inject starterTodoButton";
+        assert starterListButton != null : "FXML must inject starterListButton";
+        assert starterFindButton != null : "FXML must inject starterFindButton";
     }
 
     /**
