@@ -57,5 +57,7 @@ public enum ErrorCode {
     /** A task list request has an invalid date. */
     LIST_DATE_INVALID,
     /** A find command omitted its description query. */
-    FIND_QUERY_MISSING
+    FIND_QUERY_MISSING,
+    /** A task description contains a line break that cannot be stored. */
+    DESCRIPTION_LINE_BREAK
 }

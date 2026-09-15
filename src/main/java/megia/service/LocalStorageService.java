@@ -9,6 +9,8 @@ import java.nio.file.StandardCopyOption;
 import java.nio.file.StandardOpenOption;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeParseException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
@@ -22,8 +24,7 @@ import megia.model.TaskType;
 import megia.model.Todo;
 
 /**
- * Loads and saves tasks using the comma-delimited local storage format.
- * Descriptions are assumed not to contain commas.
+ * Loads and saves tasks using a backward-compatible CSV storage format.
  */
 public final class LocalStorageService {
     private final String taskStoragePath;
@@ -56,7 +57,7 @@ public final class LocalStorageService {
             while ((line = reader.readLine()) != null) {
                 lineNumber++;
                 try {
-                    taskStorage.addTask(getTaskFromLine(line.strip().split(",", -1)));
+                    taskStorage.addTask(getTaskFromLine(parseCsvLine(line.strip())));
                 } catch (RuntimeException exception) {
                     throw new StorageException(taskStoragePath, lineNumber);
                 }
@@ -83,6 +84,49 @@ public final class LocalStorageService {
             case EVENT -> new Event(data[2], isDone, parseDateTime(data[3]), parseDateTime(data[4]));
             case TODO -> new Todo(data[2], isDone);
         };
+    }
+
+    private static String[] parseCsvLine(String line) {
+        List<String> fields = new ArrayList<>();
+        int index = 0;
+        while (index <= line.length()) {
+            StringBuilder field = new StringBuilder();
+            if (index < line.length() && line.charAt(index) == '"') {
+                index = parseQuotedField(line, index + 1, field);
+                if (index < line.length() && line.charAt(index) != ',') {
+                    throw new IllegalArgumentException();
+                }
+            } else {
+                while (index < line.length() && line.charAt(index) != ',') {
+                    field.append(line.charAt(index));
+                    index++;
+                }
+            }
+            fields.add(field.toString());
+            if (index == line.length()) {
+                break;
+            }
+            index++;
+        }
+        return fields.toArray(String[]::new);
+    }
+
+    private static int parseQuotedField(String line, int index, StringBuilder field) {
+        while (index < line.length()) {
+            char character = line.charAt(index);
+            if (character != '"') {
+                field.append(character);
+                index++;
+                continue;
+            }
+            if (index + 1 < line.length() && line.charAt(index + 1) == '"') {
+                field.append('"');
+                index += 2;
+                continue;
+            }
+            return index + 1;
+        }
+        throw new IllegalArgumentException();
     }
 
     private static LocalDateTime parseDateTime(String value) {

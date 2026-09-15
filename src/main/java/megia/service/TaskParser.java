@@ -132,6 +132,7 @@ public final class TaskParser {
         if (description.isBlank()) {
             throw new UserInputException(ErrorCode.TODO_DESCRIPTION_MISSING);
         }
+        validateDescription(description);
         return new Todo(description);
     }
 
@@ -143,6 +144,7 @@ public final class TaskParser {
         if (description.isBlank()) {
             throw new UserInputException(ErrorCode.DEADLINE_DESCRIPTION_MISSING);
         }
+        validateDescription(description);
         if (value.isBlank()) {
             throw new UserInputException(ErrorCode.DEADLINE_BY_VALUE_MISSING);
         }
@@ -193,6 +195,7 @@ public final class TaskParser {
         if (description.isBlank()) {
             throw new UserInputException(ErrorCode.EVENT_DESCRIPTION_MISSING);
         }
+        validateDescription(description);
         String dateText = markers.onMarker() == null
                 ? null
                 : body.substring(markers.onMarker().end(), markers.fromMarker().start()).strip();
@@ -206,6 +209,12 @@ public final class TaskParser {
             throw new UserInputException(ErrorCode.EVENT_TO_VALUE_MISSING);
         }
         return new EventText(description, dateText, startText, endText);
+    }
+
+    private static void validateDescription(String description) throws UserInputException {
+        if (description.contains("\r") || description.contains("\n")) {
+            throw new UserInputException(ErrorCode.DESCRIPTION_LINE_BREAK);
+        }
     }
 
     private static Event parseSameDayEvent(EventText eventText) throws UserInputException {

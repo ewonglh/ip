@@ -33,6 +33,7 @@ corrective error messages for invalid input.
 
 Dates use `YYYY-MM-DD` or day-first `D/M/YYYY`; times use 24-hour `HHmm`.
 Deadlines and event endpoints are persisted as ISO local date-times.
+Task descriptions may contain commas and quotation marks, but not line breaks.
 
 `list <date>` shows deadlines on that date and events spanning that calendar
 date. Todos do not appear in date-filtered lists, and task numbers remain the
