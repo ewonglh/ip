@@ -78,6 +78,7 @@ public final class MainController {
 
     private final CommandExecutor commandExecutor;
     private final String startupError;
+    private final boolean isCommandBlocked;
     private final ProfileImageService profileImageService;
     private final Runnable localizationListener = this::refreshLocalizedControls;
     private Image assistantAvatar;
@@ -98,6 +99,7 @@ public final class MainController {
                    ProfileImageService profileImageService) {
         this.commandExecutor = commandExecutor;
         this.startupError = startupError;
+        this.isCommandBlocked = startupError != null;
         this.profileImageService = profileImageService;
     }
 
@@ -123,6 +125,7 @@ public final class MainController {
         if (startupError != null) {
             appendMessage(false, startupError, List.of());
         }
+        setCommandControlsDisabled(isCommandBlocked);
         commandInput.requestFocus();
     }
 
@@ -152,6 +155,9 @@ public final class MainController {
     }
 
     private void submitCommand(String rawCommand) {
+        if (isCommandBlocked) {
+            return;
+        }
         appendMessage(true, rawCommand, List.of());
 
         try {
@@ -267,6 +273,9 @@ public final class MainController {
     }
 
     private void setStarterCommand(String command) {
+        if (isCommandBlocked) {
+            return;
+        }
         commandInput.setText(command);
         commandInput.positionCaret(command.length());
         commandInput.requestFocus();
@@ -334,8 +343,18 @@ public final class MainController {
 
     private void appendMessage(
             boolean isUser, String text, List<TaskEntry> tasks, boolean areTasksActionable) {
-        transcriptList.getItems().add(new TranscriptMessage(isUser, text, tasks, areTasksActionable));
+        transcriptList.getItems().add(new TranscriptMessage(
+                isUser, text, tasks, areTasksActionable && !isCommandBlocked));
         transcriptList.scrollTo(transcriptList.getItems().size() - 1);
+    }
+
+    private void setCommandControlsDisabled(boolean isDisabled) {
+        commandInput.setDisable(isDisabled);
+        sendButton.setDisable(isDisabled);
+        starterHelpButton.setDisable(isDisabled);
+        starterTodoButton.setDisable(isDisabled);
+        starterListButton.setDisable(isDisabled);
+        starterFindButton.setDisable(isDisabled);
     }
 
     private void confirmAndDelete(TaskEntry entry) {
