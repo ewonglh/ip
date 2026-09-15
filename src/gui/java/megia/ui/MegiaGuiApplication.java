@@ -20,9 +20,20 @@ import megia.service.TaskService;
  * Configures and displays the Megia JavaFX chatbot.
  */
 public final class MegiaGuiApplication extends Application {
+    private final LocalStorageService configuredStorageService;
     private LocalStorageService localStorageService;
     private TaskStorage taskStorage;
     private MainController mainController;
+    private boolean isStorageBlocked;
+
+    /** Creates an application that uses the configured task storage path. */
+    public MegiaGuiApplication() {
+        this.configuredStorageService = null;
+    }
+
+    MegiaGuiApplication(LocalStorageService localStorageService) {
+        this.configuredStorageService = localStorageService;
+    }
 
     /**
      * Loads the FXML shell and displays the chatbot window.
@@ -33,14 +44,16 @@ public final class MegiaGuiApplication extends Application {
     @Override
     public void start(Stage stage) throws IOException {
         Properties properties = PropertiesService.getProperties();
-        localStorageService = new LocalStorageService(
-                properties.getProperty("storage.task.path"));
+        localStorageService = configuredStorageService == null
+                ? new LocalStorageService(properties.getProperty("storage.task.path"))
+                : configuredStorageService;
 
         String startupError = null;
         try {
             taskStorage = localStorageService.loadTaskData().orElse(new TaskStorage());
         } catch (StorageException exception) {
             taskStorage = new TaskStorage();
+            isStorageBlocked = true;
             startupError = LocalizationService.getException(
                     exception.getErrorCode(), exception.getMessageArguments());
         }
@@ -71,7 +84,9 @@ public final class MegiaGuiApplication extends Application {
         stage.setMinHeight(620);
         stage.setScene(scene);
         stage.setOnCloseRequest(event -> {
-            saveTasks();
+            if (!isStorageBlocked) {
+                saveTasks();
+            }
             mainController.dispose();
         });
         stage.show();

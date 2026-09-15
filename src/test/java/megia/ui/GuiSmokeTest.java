@@ -26,6 +26,7 @@ import javafx.scene.control.Label;
 import javafx.scene.control.ListView;
 import javafx.scene.control.TextField;
 import javafx.stage.Stage;
+import javafx.stage.WindowEvent;
 import megia.model.TaskStorage;
 import megia.service.CommandExecutor;
 import megia.service.LocalStorageService;
@@ -62,6 +63,7 @@ public final class GuiSmokeTest {
         } catch (IllegalStateException exception) {
             // The toolkit is already running when the test suite shares a JVM with another GUI test.
         }
+        Platform.setImplicitExit(false);
     }
 
     /**
@@ -139,6 +141,82 @@ public final class GuiSmokeTest {
             controller.dispose();
             stage.close();
             LocalizationService.setLanguage("en");
+        });
+    }
+
+    /**
+     * Verifies that malformed startup storage blocks commands and remains unchanged on close.
+     *
+     * @param temporaryDirectory Isolated directory containing malformed task storage.
+     * @throws Exception If the JavaFX operation or assertion fails.
+     */
+    @Test
+    public void malformedStorage_blocksSessionAndRemainsUnchanged(@TempDir Path temporaryDirectory)
+            throws Exception {
+        LocalizationService.setLanguage("en");
+        Path storagePath = temporaryDirectory.resolve("tasks.csv");
+        String malformedContent = "TODO,false,\"unclosed";
+        Files.writeString(storagePath, malformedContent);
+
+        runOnJavaFxThread(() -> {
+            MegiaGuiApplication application = new MegiaGuiApplication(
+                    new LocalStorageService(storagePath.toString()));
+            Stage stage = new Stage();
+            application.start(stage);
+            Parent root = stage.getScene().getRoot();
+            root.applyCss();
+            root.layout();
+
+            TextField commandInput = (TextField) root.lookup("#commandInput");
+            Button sendButton = (Button) root.lookup("#sendButton");
+            assertTrue(commandInput.isDisabled());
+            assertTrue(sendButton.isDisabled());
+            for (String controlId : List.of(
+                    "starterHelpButton", "starterTodoButton",
+                    "starterListButton", "starterFindButton")) {
+                assertTrue(root.lookup("#" + controlId).isDisabled());
+            }
+            assertTrue(root.lookupAll(".label").stream()
+                    .anyMatch(node -> node instanceof Label label
+                            && label.getText().contains(storagePath.toString())
+                            && label.getText().contains("restart Megia")));
+
+            commandInput.setText("todo must not be saved");
+            sendButton.fire();
+            stage.fireEvent(new WindowEvent(stage, WindowEvent.WINDOW_CLOSE_REQUEST));
+
+            assertEquals(malformedContent, Files.readString(storagePath));
+        });
+    }
+
+    /**
+     * Verifies that missing startup storage permits task creation and persistence.
+     *
+     * @param temporaryDirectory Isolated directory for newly created task storage.
+     * @throws Exception If the JavaFX operation or assertion fails.
+     */
+    @Test
+    public void missingStorage_allowsTaskCreationAndPersistence(@TempDir Path temporaryDirectory)
+            throws Exception {
+        LocalizationService.setLanguage("en");
+        Path storagePath = temporaryDirectory.resolve("tasks.csv");
+
+        runOnJavaFxThread(() -> {
+            MegiaGuiApplication application = new MegiaGuiApplication(
+                    new LocalStorageService(storagePath.toString()));
+            Stage stage = new Stage();
+            application.start(stage);
+            Parent root = stage.getScene().getRoot();
+            TextField commandInput = (TextField) root.lookup("#commandInput");
+            Button sendButton = (Button) root.lookup("#sendButton");
+
+            assertFalse(commandInput.isDisabled());
+            assertFalse(sendButton.isDisabled());
+            commandInput.setText("todo persisted task");
+            sendButton.fire();
+            stage.fireEvent(new WindowEvent(stage, WindowEvent.WINDOW_CLOSE_REQUEST));
+
+            assertEquals("TODO,false,persisted task", Files.readString(storagePath));
         });
     }
 
