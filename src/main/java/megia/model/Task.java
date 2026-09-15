@@ -75,7 +75,20 @@ public class Task {
      * @return Completion status and description as stored on disk.
      */
     public String encode() {
-        return String.format("%s,%s", isDone, description);
+        return String.format("%s,%s", isDone, encodeField(description));
+    }
+
+    /**
+     * Encodes one field for the task storage CSV format.
+     *
+     * @param value Field value to encode.
+     * @return CSV-safe field value.
+     */
+    protected static String encodeField(String value) {
+        if (!value.contains(",") && !value.contains("\"")) {
+            return value;
+        }
+        return '"' + value.replace("\"", "\"\"") + '"';
     }
 
     /**

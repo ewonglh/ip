@@ -142,4 +142,30 @@ class CommandExecutorTest {
 
         assertEquals(ErrorCode.EVENT_MARKERS_OUT_OF_ORDER, exception.getErrorCode());
     }
+
+    @Test
+    void execute_taskDescriptionsWithLineBreaks_rejectBeforeMutation() throws Exception {
+        Path storagePath = temporaryDirectory.resolve("tasks.csv");
+        TaskStorage taskStorage = new TaskStorage();
+        LocalStorageService localStorageService = new LocalStorageService(storagePath.toString());
+        CommandExecutor commandExecutor = new CommandExecutor(
+                new TaskService(taskStorage, localStorageService));
+        String[] rawCommands = {
+            "todo first line\nsecond line",
+            "todo first line\rsecond line",
+            "deadline first line\nsecond line /by 2026-09-10 1800",
+            "deadline first line\rsecond line /by 2026-09-10 1800",
+            "event first line\nsecond line /on 2026-09-10 /from 0900 /to 1000",
+            "event first line\rsecond line /on 2026-09-10 /from 0900 /to 1000"
+        };
+
+        for (String rawCommand : rawCommands) {
+            UserInputException exception = assertThrows(
+                    UserInputException.class, () -> commandExecutor.execute(rawCommand));
+
+            assertEquals(ErrorCode.DESCRIPTION_LINE_BREAK, exception.getErrorCode());
+            assertEquals(0, taskStorage.getTaskCount());
+        }
+        assertTrue(Files.notExists(storagePath));
+    }
 }
