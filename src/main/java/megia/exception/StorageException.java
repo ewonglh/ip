@@ -14,10 +14,24 @@ public class StorageException extends MegiaException {
      * @param lineNumber One-based line number containing invalid data, or zero for an access failure.
      */
     public StorageException(String path, int lineNumber) {
-        super(lineNumber == 0 ? ErrorCode.STORAGE_UNREADABLE : ErrorCode.STORAGE_MALFORMED,
+        this(lineNumber == 0 ? ErrorCode.STORAGE_UNREADABLE : ErrorCode.STORAGE_MALFORMED,
                 path, lineNumber);
+    }
+
+    private StorageException(ErrorCode errorCode, String path, int lineNumber) {
+        super(errorCode, path, lineNumber);
         this.path = path;
         this.lineNumber = lineNumber;
+    }
+
+    /**
+     * Creates an error for a task file that could not be saved.
+     *
+     * @param path Storage file path.
+     * @return Storage write error for the path.
+     */
+    public static StorageException createWriteFailure(String path) {
+        return new StorageException(ErrorCode.STORAGE_WRITE_FAILED, path, 0);
     }
 
     /**

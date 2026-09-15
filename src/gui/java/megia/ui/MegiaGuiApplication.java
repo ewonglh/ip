@@ -24,6 +24,7 @@ public final class MegiaGuiApplication extends Application {
     private LocalStorageService localStorageService;
     private TaskStorage taskStorage;
     private MainController mainController;
+    private Stage primaryStage;
     private boolean isStorageBlocked;
 
     /** Creates an application that uses the configured task storage path. */
@@ -43,6 +44,7 @@ public final class MegiaGuiApplication extends Application {
      */
     @Override
     public void start(Stage stage) throws IOException {
+        primaryStage = stage;
         Properties properties = PropertiesService.getProperties();
         localStorageService = configuredStorageService == null
                 ? new LocalStorageService(properties.getProperty("storage.task.path"))
@@ -60,7 +62,7 @@ public final class MegiaGuiApplication extends Application {
 
         CommandExecutor commandExecutor = new CommandExecutor(
                 new TaskService(taskStorage, localStorageService));
-        mainController = new MainController(commandExecutor, startupError);
+        mainController = new MainController(commandExecutor, startupError, this::requestExit);
 
         FXMLLoader loader = new FXMLLoader(
                 MegiaGuiApplication.class.getResource("/megia/ui/MainView.fxml"));
@@ -84,22 +86,31 @@ public final class MegiaGuiApplication extends Application {
         stage.setMinHeight(620);
         stage.setScene(scene);
         stage.setOnCloseRequest(event -> {
-            if (!isStorageBlocked) {
-                saveTasks();
-            }
-            mainController.dispose();
+            event.consume();
+            requestExit();
         });
         stage.show();
     }
 
-    private void saveTasks() {
+    private void requestExit() {
+        if (!isStorageBlocked && !saveTasks()) {
+            return;
+        }
+        mainController.completeExit();
+        mainController.dispose();
+        primaryStage.hide();
+    }
+
+    private boolean saveTasks() {
         try {
             localStorageService.saveTaskData(taskStorage);
+            return true;
         } catch (StorageException exception) {
             if (mainController != null) {
                 mainController.showErrorMessage(LocalizationService.getException(
                         exception.getErrorCode(), exception.getMessageArguments()));
             }
+            return false;
         }
     }
 }

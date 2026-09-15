@@ -54,6 +54,8 @@ public enum ErrorCode {
     STORAGE_MALFORMED,
     /** The stored task data cannot be read. */
     STORAGE_UNREADABLE,
+    /** Task data could not be written to storage. */
+    STORAGE_WRITE_FAILED,
     /** A task list request has an invalid date. */
     LIST_DATE_INVALID,
     /** A find command omitted its description query. */
