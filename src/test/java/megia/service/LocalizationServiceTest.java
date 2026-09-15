@@ -1,6 +1,7 @@
 package megia.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.junit.jupiter.api.AfterEach;
@@ -86,6 +87,20 @@ class LocalizationServiceTest {
 
         assertTrue(message.contains("/by"));
         assertTrue(message.contains("只能出现一次"));
+    }
+
+    @Test
+    void getException_storageWriteFailure_isLocalizedInEnglishAndChinese() {
+        String englishMessage = LocalizationService.getException(
+                ErrorCode.STORAGE_WRITE_FAILED, "tasks.csv");
+
+        LocalizationService.setLanguage("cn");
+        String chineseMessage = LocalizationService.getException(
+                ErrorCode.STORAGE_WRITE_FAILED, "tasks.csv");
+
+        assertTrue(englishMessage.contains("tasks.csv"));
+        assertTrue(chineseMessage.contains("tasks.csv"));
+        assertFalse(englishMessage.equals(chineseMessage));
     }
 
     @Test

@@ -164,7 +164,7 @@ public final class LocalStorageService {
             }
             moveIntoPlace(temporaryPath, storagePath);
         } catch (IOException exception) {
-            throw new StorageException(taskStoragePath, 0);
+            throw StorageException.createWriteFailure(taskStoragePath);
         } finally {
             if (temporaryPath != null) {
                 try {

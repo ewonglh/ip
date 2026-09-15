@@ -14,6 +14,7 @@ import java.util.stream.Collectors;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
+import megia.exception.ErrorCode;
 import megia.exception.StorageException;
 import megia.model.Deadline;
 import megia.model.Event;
@@ -111,6 +112,18 @@ class LocalStorageServiceTest {
         storageService.saveTaskData(new TaskStorage());
 
         assertEquals("", Files.readString(storagePath));
+    }
+
+    @Test
+    void saveTaskData_missingParent_reportsWriteFailure() {
+        Path storagePath = temporaryDirectory.resolve("missing").resolve("tasks.csv");
+        LocalStorageService storageService = new LocalStorageService(storagePath.toString());
+
+        StorageException exception = assertThrows(
+                StorageException.class, () -> storageService.saveTaskData(new TaskStorage()));
+
+        assertEquals(ErrorCode.STORAGE_WRITE_FAILED, exception.getErrorCode());
+        assertEquals(storagePath.toString(), exception.getPath());
     }
 
     @Test

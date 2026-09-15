@@ -25,6 +25,7 @@ import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.ListView;
 import javafx.scene.control.TextField;
+import javafx.scene.layout.HBox;
 import javafx.stage.Stage;
 import javafx.stage.WindowEvent;
 import megia.model.TaskStorage;
@@ -185,6 +186,7 @@ public final class GuiSmokeTest {
             sendButton.fire();
             stage.fireEvent(new WindowEvent(stage, WindowEvent.WINDOW_CLOSE_REQUEST));
 
+            assertFalse(stage.isShowing());
             assertEquals(malformedContent, Files.readString(storagePath));
         });
     }
@@ -216,7 +218,72 @@ public final class GuiSmokeTest {
             sendButton.fire();
             stage.fireEvent(new WindowEvent(stage, WindowEvent.WINDOW_CLOSE_REQUEST));
 
+            assertFalse(stage.isShowing());
             assertEquals("TODO,false,persisted task", Files.readString(storagePath));
+        });
+    }
+
+    /**
+     * Verifies that a failed {@code bye} save leaves the GUI usable and retryable.
+     *
+     * @param temporaryDirectory Isolated directory used to inject and resolve a save failure.
+     * @throws Exception If the JavaFX operation or assertion fails.
+     */
+    @Test
+    public void bye_saveFailureAllowsTaskActionAndExitRetry(@TempDir Path temporaryDirectory)
+            throws Exception {
+        LocalizationService.setLanguage("en");
+        Path storageDirectory = temporaryDirectory.resolve("storage");
+        Path storagePath = storageDirectory.resolve("tasks.csv");
+        Files.createDirectory(storageDirectory);
+        Files.writeString(storagePath, "TODO,false,persisted task");
+
+        runOnJavaFxThread(() -> {
+            MegiaGuiApplication application = new MegiaGuiApplication(
+                    new LocalStorageService(storagePath.toString()));
+            Stage stage = new Stage();
+            application.start(stage);
+            Parent root = stage.getScene().getRoot();
+            TextField commandInput = (TextField) root.lookup("#commandInput");
+            Button sendButton = (Button) root.lookup("#sendButton");
+
+            Files.delete(storagePath);
+            Files.delete(storageDirectory);
+            commandInput.setText("bye");
+            sendButton.fire();
+            root.applyCss();
+            root.layout();
+
+            assertTrue(stage.isShowing());
+            assertFalse(commandInput.isDisabled());
+            assertFalse(sendButton.isDisabled());
+            assertTrue(root.lookupAll(".label").stream()
+                    .anyMatch(node -> node instanceof Label label
+                            && label.getText().contains("try again")));
+            String englishSendLabel = sendButton.getText();
+            LocalizationService.setLanguage("cn");
+            assertFalse(englishSendLabel.equals(sendButton.getText()));
+            LocalizationService.setLanguage("en");
+
+            commandInput.setText("list");
+            sendButton.fire();
+            root.applyCss();
+            root.layout();
+            HBox taskActions = (HBox) root.lookup(".task-actions");
+            assertNotNull(taskActions);
+
+            Files.createDirectory(storageDirectory);
+            Button markButton = (Button) taskActions.getChildren().get(0);
+            markButton.fire();
+            assertEquals("TODO,true,persisted task", Files.readString(storagePath));
+
+            commandInput.setText("bye");
+            sendButton.fire();
+            assertFalse(stage.isShowing());
+            assertTrue(commandInput.isDisabled());
+            LocalizationService.setLanguage("cn");
+            assertEquals(englishSendLabel, sendButton.getText());
+            LocalizationService.setLanguage("en");
         });
     }
 

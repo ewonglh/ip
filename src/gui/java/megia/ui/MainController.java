@@ -80,6 +80,7 @@ public final class MainController {
     private final String startupError;
     private final boolean isCommandBlocked;
     private final ProfileImageService profileImageService;
+    private final Runnable exitHandler;
     private final Runnable localizationListener = this::refreshLocalizedControls;
     private Image assistantAvatar;
     private Image userAvatar;
@@ -92,15 +93,33 @@ public final class MainController {
      * @param startupError Localized startup error, or null when startup was clean.
      */
     public MainController(CommandExecutor commandExecutor, String startupError) {
-        this(commandExecutor, startupError, new ProfileImageService());
+        this(commandExecutor, startupError, new ProfileImageService(), null);
+    }
+
+    /**
+     * Creates a chatbot controller that delegates exit requests.
+     *
+     * @param commandExecutor Shared command executor used by the chatbot.
+     * @param startupError Localized startup error, or null when startup was clean.
+     * @param exitHandler Callback that attempts to save and close the application.
+     */
+    public MainController(
+            CommandExecutor commandExecutor, String startupError, Runnable exitHandler) {
+        this(commandExecutor, startupError, new ProfileImageService(), exitHandler);
     }
 
     MainController(CommandExecutor commandExecutor, String startupError,
                    ProfileImageService profileImageService) {
+        this(commandExecutor, startupError, profileImageService, null);
+    }
+
+    MainController(CommandExecutor commandExecutor, String startupError,
+                   ProfileImageService profileImageService, Runnable exitHandler) {
         this.commandExecutor = commandExecutor;
         this.startupError = startupError;
         this.isCommandBlocked = startupError != null;
         this.profileImageService = profileImageService;
+        this.exitHandler = exitHandler == null ? this::completeExit : exitHandler;
     }
 
     /**
@@ -289,12 +308,13 @@ public final class MainController {
                     false, LocalizationService.getMessage("empty"), List.of());
             case CommandResult.Help ignored -> appendMessage(
                     false, LocalizationService.getMessage("help"), List.of());
-            case CommandResult.Exit ignored -> {
-                appendMessage(false, LocalizationService.getMessage("farewell"), List.of());
-                commandInput.setDisable(true);
-                sendButton.setDisable(true);
-            }
+            case CommandResult.Exit ignored -> exitHandler.run();
         }
+    }
+
+    void completeExit() {
+        appendMessage(false, LocalizationService.getMessage("farewell"), List.of());
+        setCommandControlsDisabled(true);
     }
 
     private void renderTaskList(CommandResult.TaskList taskList) {
