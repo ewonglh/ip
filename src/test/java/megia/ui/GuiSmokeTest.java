@@ -19,13 +19,18 @@ import org.junit.jupiter.api.io.TempDir;
 
 import javafx.application.Platform;
 import javafx.fxml.FXMLLoader;
+import javafx.geometry.Bounds;
+import javafx.geometry.Orientation;
+import javafx.scene.Node;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.ListView;
+import javafx.scene.control.ScrollBar;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.HBox;
+import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 import javafx.stage.WindowEvent;
 import megia.model.TaskStorage;
@@ -222,6 +227,72 @@ public final class GuiSmokeTest {
     }
 
     /**
+     * Verifies that transcript content stays readable and actionable while resizing.
+     *
+     * @param temporaryDirectory Isolated directory used for task persistence.
+     * @throws Exception If the JavaFX operation or assertion fails.
+     */
+    @Test
+    public void transcriptResizing_keepsLongContentAndActionsAccessible(
+            @TempDir Path temporaryDirectory) throws Exception {
+        LocalizationService.setLanguage("en");
+        runOnJavaFxThread(() -> {
+            Path storagePath = temporaryDirectory.resolve("tasks.csv");
+            CommandExecutor commandExecutor = new CommandExecutor(
+                    new TaskService(
+                            new TaskStorage(), new LocalStorageService(storagePath.toString())));
+            MainController controller = new MainController(
+                    commandExecutor, null, new ProfileImageService());
+            FXMLLoader loader = new FXMLLoader(
+                    GuiSmokeTest.class.getResource("/megia/ui/MainView.fxml"));
+            loader.setControllerFactory(type -> controller);
+            Parent root = loader.load();
+            Scene scene = new Scene(root);
+            scene.getStylesheets().add(
+                    GuiSmokeTest.class.getResource("/megia/ui/chat.css").toExternalForm());
+            Stage stage = new Stage();
+            stage.setMinWidth(540);
+            stage.setMinHeight(620);
+            stage.setWidth(540);
+            stage.setHeight(620);
+            stage.setScene(scene);
+            stage.show();
+
+            try {
+                ListView<?> transcript = (ListView<?>) root.lookup("#transcriptList");
+                TextField commandInput = (TextField) root.lookup("#commandInput");
+                Button sendButton = (Button) root.lookup("#sendButton");
+                applyLayout(root);
+                assertNoVisibleHorizontalScrollBar(transcript);
+
+                String longEnglishDescription = "unbroken".repeat(45);
+                commandInput.setText("todo " + longEnglishDescription);
+                sendButton.fire();
+                String longChineseDescription = "这是一个很长的中文任务说明".repeat(20);
+                commandInput.setText("todo " + longChineseDescription);
+                sendButton.fire();
+                LocalizationService.setLanguage("cn");
+                commandInput.setText("list");
+                sendButton.fire();
+                transcript.scrollTo(transcript.getItems().size() - 1);
+
+                for (double width : List.of(840.0, 540.0, 720.0, 540.0)) {
+                    stage.setWidth(width);
+                    stage.setHeight(width == 540.0 ? 620 : 760);
+                    applyLayout(root);
+                    assertNoVisibleHorizontalScrollBar(transcript);
+                    assertLongDescriptionsWrap(root);
+                    assertTaskActionsFitCards(root);
+                }
+            } finally {
+                controller.dispose();
+                stage.close();
+                LocalizationService.setLanguage("en");
+            }
+        });
+    }
+
+    /**
      * Verifies that malformed startup storage blocks commands and remains unchanged on close.
      *
      * @param temporaryDirectory Isolated directory containing malformed task storage.
@@ -380,6 +451,52 @@ public final class GuiSmokeTest {
         if (failure.get() != null) {
             throw new AssertionError("JavaFX smoke test failed", failure.get());
         }
+    }
+
+    private static void applyLayout(Parent root) {
+        root.applyCss();
+        root.layout();
+    }
+
+    private static void assertNoVisibleHorizontalScrollBar(ListView<?> transcript) {
+        assertTrue(transcript.lookupAll(".scroll-bar").stream()
+                .filter(node -> node instanceof ScrollBar scrollBar
+                        && scrollBar.getOrientation() == Orientation.HORIZONTAL)
+                .noneMatch(Node::isVisible));
+    }
+
+    private static void assertLongDescriptionsWrap(Parent root) {
+        List<Label> descriptionLabels = root.lookupAll(".task-description").stream()
+                .filter(Label.class::isInstance)
+                .map(Label.class::cast)
+                .toList();
+        assertTrue(descriptionLabels.size() >= 2);
+        for (Label descriptionLabel : descriptionLabels) {
+            assertTrue(descriptionLabel.getHeight() > descriptionLabel.getFont().getSize() * 2);
+            assertContained(descriptionLabel, (VBox) descriptionLabel.getParent());
+        }
+    }
+
+    private static void assertTaskActionsFitCards(Parent root) {
+        List<HBox> taskActions = root.lookupAll(".task-actions").stream()
+                .filter(HBox.class::isInstance)
+                .map(HBox.class::cast)
+                .toList();
+        assertTrue(taskActions.size() >= 2);
+        for (HBox taskAction : taskActions) {
+            assertContained(taskAction, (VBox) taskAction.getParent());
+            assertTrue(taskAction.getChildren().stream().allMatch(Node::isVisible));
+        }
+    }
+
+    private static void assertContained(Node child, Node container) {
+        Bounds childBounds = child.localToScene(child.getBoundsInLocal());
+        Bounds containerBounds = container.localToScene(container.getBoundsInLocal());
+        double tolerance = 0.5;
+        assertTrue(childBounds.getMinX() >= containerBounds.getMinX() - tolerance);
+        assertTrue(childBounds.getMaxX() <= containerBounds.getMaxX() + tolerance);
+        assertTrue(childBounds.getMinY() >= containerBounds.getMinY() - tolerance);
+        assertTrue(childBounds.getMaxY() <= containerBounds.getMaxY() + tolerance);
     }
 
     @FunctionalInterface
