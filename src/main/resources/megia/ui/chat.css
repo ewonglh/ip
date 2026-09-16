@@ -81,6 +81,19 @@
     -fx-border-radius: 14px;
 }
 
+.error-message {
+    -fx-background-color: #fff1f1;
+    -fx-border-color: #a53232;
+    -fx-border-radius: 14px;
+    -fx-border-width: 2px;
+}
+
+.error-label {
+    -fx-text-fill: #8b1f1f;
+    -fx-font-size: 12px;
+    -fx-font-weight: bold;
+}
+
 .user-avatar,
 .assistant-avatar {
     -fx-background-radius: 20px;

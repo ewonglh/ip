@@ -7,6 +7,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
+import java.util.function.BooleanSupplier;
 
 import javafx.beans.binding.Bindings;
 import javafx.fxml.FXML;
@@ -80,7 +81,7 @@ public final class MainController {
     private final String startupError;
     private final boolean isCommandBlocked;
     private final ProfileImageService profileImageService;
-    private final Runnable exitHandler;
+    private final BooleanSupplier exitHandler;
     private final Runnable localizationListener = this::refreshLocalizedControls;
     private Image assistantAvatar;
     private Image userAvatar;
@@ -93,7 +94,7 @@ public final class MainController {
      * @param startupError Localized startup error, or null when startup was clean.
      */
     public MainController(CommandExecutor commandExecutor, String startupError) {
-        this(commandExecutor, startupError, new ProfileImageService(), null);
+        this(commandExecutor, startupError, new ProfileImageService(), (BooleanSupplier) null);
     }
 
     /**
@@ -105,21 +106,40 @@ public final class MainController {
      */
     public MainController(
             CommandExecutor commandExecutor, String startupError, Runnable exitHandler) {
-        this(commandExecutor, startupError, new ProfileImageService(), exitHandler);
+        this(commandExecutor, startupError, new ProfileImageService(),
+                asExitHandler(exitHandler));
     }
 
     MainController(CommandExecutor commandExecutor, String startupError,
                    ProfileImageService profileImageService) {
-        this(commandExecutor, startupError, profileImageService, null);
+        this(commandExecutor, startupError, profileImageService, (BooleanSupplier) null);
     }
 
     MainController(CommandExecutor commandExecutor, String startupError,
                    ProfileImageService profileImageService, Runnable exitHandler) {
+        this(commandExecutor, startupError, profileImageService, asExitHandler(exitHandler));
+    }
+
+    MainController(CommandExecutor commandExecutor, String startupError,
+                   ProfileImageService profileImageService, BooleanSupplier exitHandler) {
         this.commandExecutor = commandExecutor;
         this.startupError = startupError;
         this.isCommandBlocked = startupError != null;
         this.profileImageService = profileImageService;
-        this.exitHandler = exitHandler == null ? this::completeExit : exitHandler;
+        this.exitHandler = exitHandler == null ? () -> {
+            completeExit();
+            return true;
+        } : exitHandler;
+    }
+
+    private static BooleanSupplier asExitHandler(Runnable exitHandler) {
+        if (exitHandler == null) {
+            return null;
+        }
+        return () -> {
+            exitHandler.run();
+            return true;
+        };
     }
 
     /**
@@ -142,7 +162,7 @@ public final class MainController {
         transcriptList.setCellFactory(ignored -> new TranscriptCell());
         appendMessage(false, LocalizationService.getMessage("greeting"), List.of());
         if (startupError != null) {
-            appendMessage(false, startupError, List.of());
+            appendErrorMessage(startupError);
         }
         setCommandControlsDisabled(isCommandBlocked);
         commandInput.requestFocus();
@@ -168,25 +188,27 @@ public final class MainController {
     @FXML
     public void handleSend() {
         String rawCommand = commandInput.getText();
-        commandInput.clear();
-        submitCommand(rawCommand);
+        if (submitCommand(rawCommand)) {
+            commandInput.clear();
+        }
         commandInput.requestFocus();
     }
 
-    private void submitCommand(String rawCommand) {
+    private boolean submitCommand(String rawCommand) {
         if (isCommandBlocked) {
-            return;
+            return false;
         }
         appendMessage(true, rawCommand, List.of());
 
         try {
-            renderResult(commandExecutor.execute(rawCommand));
+            return renderResult(commandExecutor.execute(rawCommand));
         } catch (MegiaException exception) {
-            appendMessage(false, LocalizationService.getException(
-                    exception.getErrorCode(), exception.getMessageArguments()), List.of());
+            appendErrorMessage(LocalizationService.getException(
+                    exception.getErrorCode(), exception.getMessageArguments()));
         } catch (RuntimeException exception) {
-            appendMessage(false, LocalizationService.getMessage("unexpected_error"), List.of());
+            appendErrorMessage(LocalizationService.getMessage("unexpected_error"));
         }
+        return false;
     }
 
     /**
@@ -264,7 +286,7 @@ public final class MainController {
      * @param message Error message to display.
      */
     public void showErrorMessage(String message) {
-        appendMessage(false, message, List.of());
+        appendErrorMessage(message);
     }
 
     private void refreshLocalizedControls() {
@@ -278,6 +300,7 @@ public final class MainController {
         commandInput.setPromptText(LocalizationService.getMessage("command_prompt"));
         sendButton.setText(LocalizationService.getMessage("send"));
         userImageButton.setText(LocalizationService.getMessage("profile_image_choose"));
+        transcriptList.refresh();
 
         isRefreshingLanguageChoice = true;
         try {
@@ -300,16 +323,22 @@ public final class MainController {
         commandInput.requestFocus();
     }
 
-    private void renderResult(CommandResult result) {
-        switch (result) {
-            case CommandResult.TaskList taskList -> renderTaskList(taskList);
-            case CommandResult.TaskMutation mutation -> renderMutation(mutation);
+    private boolean renderResult(CommandResult result) {
+        return switch (result) {
+            case CommandResult.TaskList taskList -> {
+                renderTaskList(taskList);
+                yield true;
+            }
+            case CommandResult.TaskMutation mutation -> {
+                renderMutation(mutation);
+                yield true;
+            }
             case CommandResult.Empty ignored -> appendMessage(
                     false, LocalizationService.getMessage("empty"), List.of());
             case CommandResult.Help ignored -> appendMessage(
                     false, LocalizationService.getMessage("help"), List.of());
-            case CommandResult.Exit ignored -> exitHandler.run();
-        }
+            case CommandResult.Exit ignored -> exitHandler.getAsBoolean();
+        };
     }
 
     void completeExit() {
@@ -357,14 +386,22 @@ public final class MainController {
                 mutation.operation() != CommandResult.MutationType.DELETE);
     }
 
-    private void appendMessage(boolean isUser, String text, List<TaskEntry> tasks) {
+    private boolean appendMessage(boolean isUser, String text, List<TaskEntry> tasks) {
         appendMessage(isUser, text, tasks, !isUser);
+        return true;
     }
 
     private void appendMessage(
             boolean isUser, String text, List<TaskEntry> tasks, boolean areTasksActionable) {
         transcriptList.getItems().add(new TranscriptMessage(
-                isUser, text, tasks, areTasksActionable && !isCommandBlocked));
+                isUser ? MessageKind.USER : MessageKind.ASSISTANT,
+                text, tasks, areTasksActionable && !isCommandBlocked));
+        transcriptList.scrollTo(transcriptList.getItems().size() - 1);
+    }
+
+    private void appendErrorMessage(String message) {
+        transcriptList.getItems().add(new TranscriptMessage(
+                MessageKind.ERROR, message, List.of(), false));
         transcriptList.scrollTo(transcriptList.getItems().size() - 1);
     }
 
@@ -437,8 +474,14 @@ public final class MainController {
         return dateTime.format(DISPLAY_FORMATTER);
     }
 
+    private enum MessageKind {
+        USER,
+        ASSISTANT,
+        ERROR
+    }
+
     private record TranscriptMessage(
-            boolean isUser, String text, List<TaskEntry> tasks, boolean areTasksActionable) {
+            MessageKind kind, String text, List<TaskEntry> tasks, boolean areTasksActionable) {
         private TranscriptMessage {
             tasks = List.copyOf(tasks);
         }
@@ -470,6 +513,11 @@ public final class MainController {
 
         private VBox createMessageBubble(TranscriptMessage message) {
             VBox content = new VBox(8);
+            if (message.kind() == MessageKind.ERROR) {
+                Label errorLabel = new Label(LocalizationService.getMessage("error_label"));
+                errorLabel.getStyleClass().add("error-label");
+                content.getChildren().add(errorLabel);
+            }
             Label messageLabel = new Label(message.text());
             messageLabel.setWrapText(true);
             content.getChildren().add(messageLabel);
@@ -482,20 +530,25 @@ public final class MainController {
                             widthProperty().subtract(AVATAR_SIZE + MESSAGE_GAP)
                                     .multiply(BUBBLE_WIDTH_FRACTION))));
             content.getStyleClass().add("message-bubble");
-            content.getStyleClass().add(message.isUser() ? "user-message" : "assistant-message");
+            content.getStyleClass().add(switch (message.kind()) {
+                case USER -> "user-message";
+                case ASSISTANT -> "assistant-message";
+                case ERROR -> "error-message";
+            });
             return content;
         }
 
         private HBox createMessageRow(TranscriptMessage message, VBox content) {
-            StackPane avatar = createAvatar(message.isUser());
-            HBox row = message.isUser()
+            boolean isUser = message.kind() == MessageKind.USER;
+            StackPane avatar = createAvatar(isUser);
+            HBox row = isUser
                     ? new HBox(MESSAGE_GAP, content, avatar)
                     : new HBox(MESSAGE_GAP, avatar, content);
-            row.setAlignment(message.isUser() ? Pos.TOP_RIGHT : Pos.TOP_LEFT);
+            row.setAlignment(isUser ? Pos.TOP_RIGHT : Pos.TOP_LEFT);
             row.setMaxWidth(Double.MAX_VALUE);
             row.prefWidthProperty().bind(widthProperty());
             row.getStyleClass().add("message-row");
-            row.getStyleClass().add(message.isUser() ? "user-row" : "assistant-row");
+            row.getStyleClass().add(isUser ? "user-row" : "assistant-row");
             return row;
         }
 

@@ -146,6 +146,82 @@ public final class GuiSmokeTest {
     }
 
     /**
+     * Verifies that errors are labelled and failed commands remain available for retry.
+     *
+     * @param temporaryDirectory Isolated directory used to inject a persistence failure.
+     * @throws Exception If the JavaFX operation or assertion fails.
+     */
+    @Test
+    public void failedCommands_showLocalizedErrorsAndRemainRetryable(
+            @TempDir Path temporaryDirectory) throws Exception {
+        LocalizationService.setLanguage("en");
+        Path storageDirectory = temporaryDirectory.resolve("storage");
+        Path storagePath = storageDirectory.resolve("tasks.csv");
+
+        runOnJavaFxThread(() -> {
+            CommandExecutor commandExecutor = new CommandExecutor(
+                    new TaskService(
+                            new TaskStorage(), new LocalStorageService(storagePath.toString())));
+            MainController controller = new MainController(
+                    commandExecutor, null, new ProfileImageService());
+            FXMLLoader loader = new FXMLLoader(
+                    GuiSmokeTest.class.getResource("/megia/ui/MainView.fxml"));
+            loader.setControllerFactory(type -> controller);
+            Parent root = loader.load();
+            Scene scene = new Scene(root);
+            scene.getStylesheets().add(
+                    GuiSmokeTest.class.getResource("/megia/ui/chat.css").toExternalForm());
+            Stage stage = new Stage();
+            stage.setScene(scene);
+            stage.show();
+
+            TextField commandInput = (TextField) root.lookup("#commandInput");
+            Button sendButton = (Button) root.lookup("#sendButton");
+            commandInput.setText("unknown-command");
+            sendButton.fire();
+            root.applyCss();
+            root.layout();
+
+            assertEquals("unknown-command", commandInput.getText());
+            assertEquals(1, root.lookupAll(".error-message").size());
+            assertTrue(root.lookupAll(".error-label").stream()
+                    .anyMatch(node -> node instanceof Label label
+                            && label.getText().equals("Error")));
+
+            LocalizationService.setLanguage("cn");
+            root.applyCss();
+            root.layout();
+            assertTrue(root.lookupAll(".error-label").stream()
+                    .anyMatch(node -> node instanceof Label label
+                            && label.getText().equals("错误")));
+            LocalizationService.setLanguage("en");
+
+            int errorCount = root.lookupAll(".error-message").size();
+            commandInput.setText("help");
+            sendButton.fire();
+            root.applyCss();
+            root.layout();
+            assertEquals("", commandInput.getText());
+            assertEquals(errorCount, root.lookupAll(".error-message").size());
+
+            commandInput.setText("todo retry once");
+            sendButton.fire();
+            root.applyCss();
+            root.layout();
+            assertEquals("todo retry once", commandInput.getText());
+            assertTrue(Files.notExists(storagePath));
+
+            Files.createDirectory(storageDirectory);
+            sendButton.fire();
+            assertEquals("", commandInput.getText());
+            assertEquals("TODO,false,retry once", Files.readString(storagePath));
+
+            controller.dispose();
+            stage.close();
+        });
+    }
+
+    /**
      * Verifies that malformed startup storage blocks commands and remains unchanged on close.
      *
      * @param temporaryDirectory Isolated directory containing malformed task storage.
@@ -181,6 +257,7 @@ public final class GuiSmokeTest {
                     .anyMatch(node -> node instanceof Label label
                             && label.getText().contains(storagePath.toString())
                             && label.getText().contains("restart Megia")));
+            assertEquals(1, root.lookupAll(".error-message").size());
 
             commandInput.setText("todo must not be saved");
             sendButton.fire();

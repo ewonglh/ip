@@ -62,7 +62,8 @@ public final class MegiaGuiApplication extends Application {
 
         CommandExecutor commandExecutor = new CommandExecutor(
                 new TaskService(taskStorage, localStorageService));
-        mainController = new MainController(commandExecutor, startupError, this::requestExit);
+        mainController = new MainController(
+                commandExecutor, startupError, new ProfileImageService(), this::requestExit);
 
         FXMLLoader loader = new FXMLLoader(
                 MegiaGuiApplication.class.getResource("/megia/ui/MainView.fxml"));
@@ -92,13 +93,14 @@ public final class MegiaGuiApplication extends Application {
         stage.show();
     }
 
-    private void requestExit() {
+    private boolean requestExit() {
         if (!isStorageBlocked && !saveTasks()) {
-            return;
+            return false;
         }
         mainController.completeExit();
         mainController.dispose();
         primaryStage.hide();
+        return true;
     }
 
     private boolean saveTasks() {
