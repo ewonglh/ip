@@ -182,6 +182,7 @@ public final class GuiSmokeTest {
 
             TextField commandInput = (TextField) root.lookup("#commandInput");
             Button sendButton = (Button) root.lookup("#sendButton");
+            ListView<?> transcript = (ListView<?>) root.lookup("#transcriptList");
             commandInput.setText("unknown-command");
             sendButton.fire();
             root.applyCss();
@@ -207,6 +208,9 @@ public final class GuiSmokeTest {
             root.applyCss();
             root.layout();
             assertEquals("", commandInput.getText());
+            transcript.scrollTo(2);
+            root.applyCss();
+            root.layout();
             assertEquals(errorCount, root.lookupAll(".error-message").size());
 
             commandInput.setText("todo retry once");
