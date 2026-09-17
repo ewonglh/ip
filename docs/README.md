@@ -6,30 +6,44 @@ and Chinese messages.
 
 ## Requirements and launch
 
-Install a Java Development Kit (JDK) 25. To obtain a packaged JAR from a source
-checkout, run the Gradle wrapper:
+Install a Java Development Kit (JDK) 25. To obtain a packaged GUI JAR from a
+source checkout, run the Gradle wrapper:
 
 ```bash
 ./gradlew shadowJar
 ```
 
-The packaged application is `build/libs/megia.jar`. Run its default console
-interface with:
+The packaged application is `build/libs/megia.jar`. The JAR includes the JavaFX
+classes and native libraries for these Java 25 platforms:
+
+- Windows x86-64.
+- macOS x86-64 and ARM64.
+- Linux x86-64 and ARM64.
+
+On a desktop-capable machine, launch the packaged GUI with:
 
 ```bash
-java -jar build/libs/megia.jar
+java -jar /path/to/megia.jar
 ```
 
-On a desktop-capable machine, launch the JavaFX interface from the checkout with:
+The JAR uses `megia.ui.GuiLauncher` as its entry point. From the source
+checkout, the equivalent GUI command is:
 
 ```bash
 ./gradlew runGui
 ```
 
-The packaged JAR also contains the GUI launcher:
+The console interface remains available from the source checkout:
 
 ```bash
-java -cp build/libs/megia.jar megia.ui.GuiLauncher
+./gradlew run
+```
+
+If you need the console from an already packaged JAR, invoke its console entry
+point explicitly:
+
+```bash
+java -cp /path/to/megia.jar megia.Megia
 ```
 
 The GUI has the same command syntax as the console. Type a command in the
