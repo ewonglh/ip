@@ -160,6 +160,8 @@ public final class MainController {
         LocalizationService.addLanguageChangeListener(localizationListener);
         refreshLocalizedControls();
         transcriptList.setCellFactory(ignored -> new TranscriptCell());
+        transcriptList.widthProperty().addListener((ignored, oldWidth, newWidth) ->
+                transcriptList.refresh());
         appendMessage(false, LocalizationService.getMessage("greeting"), List.of());
         if (startupError != null) {
             appendErrorMessage(startupError);
@@ -520,6 +522,7 @@ public final class MainController {
             }
             Label messageLabel = new Label(message.text());
             messageLabel.setWrapText(true);
+            messageLabel.setMinWidth(0);
             content.getChildren().add(messageLabel);
             for (TaskEntry task : message.tasks()) {
                 content.getChildren().add(createTaskCard(task, message.areTasksActionable()));
@@ -579,6 +582,7 @@ public final class MainController {
             Label descriptionLabel = new Label(entry.task().getDescription());
             descriptionLabel.getStyleClass().add("task-description");
             descriptionLabel.setWrapText(true);
+            descriptionLabel.setMinWidth(0);
 
             Label statusLabel = new Label(LocalizationService.getMessage(
                     entry.task().isDone() ? "task_status_done" : "task_status_pending"));
@@ -590,6 +594,7 @@ public final class MainController {
                 Label detailsLabel = new Label(details);
                 detailsLabel.getStyleClass().add("task-meta");
                 detailsLabel.setWrapText(true);
+                detailsLabel.setMinWidth(0);
                 card.getChildren().add(detailsLabel);
             }
             if (areTasksActionable) {
