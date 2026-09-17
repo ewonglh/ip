@@ -17,9 +17,9 @@ bye
 ### Expected output
 
 ```text
-Got it. I've added this task:
+All set. I've added this task:
   [T][ ] borrow book
-Now you have 1 tasks in the list.
+Your task list now has 1 tasks.
 ```
 
 ## Test case 2: Add a typed deadline
@@ -36,9 +36,9 @@ bye
 ### Expected output
 
 ```text
-Got it. I've added this task:
+All set. I've added this task:
   [D][ ] submit report (by: Dec 02 2019, 6:00 PM)
-Now you have 1 tasks in the list.
+Your task list now has 1 tasks.
 ```
 
 ## Test case 3: Add a same-day event
@@ -55,9 +55,9 @@ bye
 ### Expected output
 
 ```text
-Got it. I've added this task:
+All set. I've added this task:
   [E][ ] meeting (on: Dec 02 2019, from: 2:00 PM to: 4:00 PM)
-Now you have 1 tasks in the list.
+Your task list now has 1 tasks.
 ```
 
 ## Test case 4: Add a multi-day event
@@ -74,9 +74,9 @@ bye
 ### Expected output
 
 ```text
-Got it. I've added this task:
+All set. I've added this task:
   [E][ ] conference (from: Dec 02 2019, 2:00 PM to: Dec 03 2019, 4:00 PM)
-Now you have 1 tasks in the list.
+Your task list now has 1 tasks.
 ```
 
 ## Test case 5: Reject impossible values
@@ -131,9 +131,9 @@ bye
 ### Expected output (session 1)
 
 ```text
-Got it. I've added this task:
+All set. I've added this task:
   [D][ ] report (by: Dec 02 2019, 6:00 PM)
-Now you have 1 tasks in the list.
+Your task list now has 1 tasks.
 ```
 
 ### Inputs (session 2)
@@ -146,7 +146,7 @@ bye
 ### Expected output (session 2)
 
 ```text
-Here's your tasks:
+Here is your task list:
 1.[D][ ] report (by: Dec 02 2019, 6:00 PM)
 ```
 
@@ -291,19 +291,19 @@ bye
 ### Expected output
 
 ```text
-Got it. I've added this task:
+All set. I've added this task:
   [T][ ] read book
-Now you have 1 tasks in the list.
-Got it. I've added this task:
+Your task list now has 1 tasks.
+All set. I've added this task:
   [D][ ] return book (by: Dec 02 2019, 6:00 PM)
-Now you have 2 tasks in the list.
-Nice! I've marked this task as done:
+Your task list now has 2 tasks.
+Good progress. I've marked this task as complete:
 [T][X] read book
-OK, I've marked this task as not done yet:
+No problem. I've marked this task as incomplete:
 [T][ ] read book
-I've removed this task:
+All set. I've removed this task:
 [T][ ] read book
-Here's your tasks:
+Here is your task list:
 1.[D][ ] return book (by: Dec 02 2019, 6:00 PM)
 ```
 
@@ -347,9 +347,9 @@ bye
 
 ```text
 There are no tasks to delete. Add one first, for example: todo borrow a book
-Got it. I've added this task:
+All set. I've added this task:
   [T][ ] first task
-Now you have 1 tasks in the list.
+Your task list now has 1 tasks.
 Task 2 does not exist. Choose a number from 1 to 1, or use "list" to view your tasks.
 ```
 
@@ -387,10 +387,10 @@ bye
 ### Expected output
 
 ```text
-Got it. I've added this task:
+All set. I've added this task:
   [T][ ] borrow book
-Now you have 1 tasks in the list.
-Here's your tasks:
+Your task list now has 1 tasks.
+Here is your task list:
 1.[T][ ] borrow book
 ```
 
@@ -414,26 +414,26 @@ bye
 ### Expected output
 
 ```text
-Got it. I've added this task:
+All set. I've added this task:
   [T][ ] unplanned task
-Now you have 1 tasks in the list.
-Got it. I've added this task:
+Your task list now has 1 tasks.
+All set. I've added this task:
   [D][ ] due today (by: Dec 02 2019, 6:00 PM)
-Now you have 2 tasks in the list.
-Got it. I've added this task:
+Your task list now has 2 tasks.
+All set. I've added this task:
   [D][ ] due tomorrow (by: Dec 03 2019, 6:00 PM)
-Now you have 3 tasks in the list.
-Got it. I've added this task:
+Your task list now has 3 tasks.
+All set. I've added this task:
   [E][ ] meeting (on: Dec 02 2019, from: 2:00 PM to: 4:00 PM)
-Now you have 4 tasks in the list.
-Got it. I've added this task:
+Your task list now has 4 tasks.
+All set. I've added this task:
   [E][ ] conference (from: Dec 01 2019, 9:00 AM to: Dec 03 2019, 5:00 PM)
-Now you have 5 tasks in the list.
-Here's your tasks on 2019-12-02:
+Your task list now has 5 tasks.
+Here are your tasks for 2019-12-02:
 2.[D][ ] due today (by: Dec 02 2019, 6:00 PM)
 4.[E][ ] meeting (on: Dec 02 2019, from: 2:00 PM to: 4:00 PM)
 5.[E][ ] conference (from: Dec 01 2019, 9:00 AM to: Dec 03 2019, 5:00 PM)
-Here's your tasks on 2019-12-03:
+Here are your tasks for 2019-12-03:
 3.[D][ ] due tomorrow (by: Dec 03 2019, 6:00 PM)
 5.[E][ ] conference (from: Dec 01 2019, 9:00 AM to: Dec 03 2019, 5:00 PM)
 ```
@@ -455,10 +455,10 @@ bye
 ### Expected output
 
 ```text
-Got it. I've added this task:
+All set. I've added this task:
   [T][ ] unplanned task
-Now you have 1 tasks in the list.
-There are no tasks on 2019-12-04.
+Your task list now has 1 tasks.
+No tasks are scheduled for 2019-12-04.
 Enter a valid date using YYYY-MM-DD or D/M/YYYY. Try: list 2019-12-02
 Enter a valid date using YYYY-MM-DD or D/M/YYYY. Try: list 2019-12-02
 ```
@@ -478,12 +478,12 @@ bye
 ### Expected output (session 1)
 
 ```text
-Got it. I've added this task:
+All set. I've added this task:
   [D][ ] report (by: Dec 02 2019, 6:00 PM)
-Now you have 1 tasks in the list.
-Got it. I've added this task:
+Your task list now has 1 tasks.
+All set. I've added this task:
   [E][ ] workshop (from: Dec 01 2019, 3:00 PM to: Dec 03 2019, 11:00 AM)
-Now you have 2 tasks in the list.
+Your task list now has 2 tasks.
 ```
 
 ### Inputs (session 2)
@@ -496,7 +496,7 @@ bye
 ### Expected output (session 2)
 
 ```text
-Here's your tasks on 2019-12-02:
+Here are your tasks for 2019-12-02:
 1.[D][ ] report (by: Dec 02 2019, 6:00 PM)
 2.[E][ ] workshop (from: Dec 01 2019, 3:00 PM to: Dec 03 2019, 11:00 AM)
 ```
@@ -521,22 +521,22 @@ bye
 ### Expected output
 
 ```text
-Got it. I've added this task:
+All set. I've added this task:
   [T][ ] review PR #42 [urgent]
-Now you have 1 tasks in the list.
-Got it. I've added this task:
+Your task list now has 1 tasks.
+All set. I've added this task:
   [D][ ] review report (by: Dec 02 2019, 6:00 PM)
-Now you have 2 tasks in the list.
-Got it. I've added this task:
+Your task list now has 2 tasks.
+All set. I've added this task:
   [E][ ] team review (on: Dec 02 2019, from: 2:00 PM to: 4:00 PM)
-Now you have 3 tasks in the list.
+Your task list now has 3 tasks.
 Here are the matching tasks:
 1.[T][ ] review PR #42 [urgent]
 2.[D][ ] review report (by: Dec 02 2019, 6:00 PM)
 3.[E][ ] team review (on: Dec 02 2019, from: 2:00 PM to: 4:00 PM)
 Here are the matching tasks:
 1.[T][ ] review PR #42 [urgent]
-There are no tasks containing "Review".
+I couldn't find any tasks containing "Review".
 A find command needs a search term. Try: find borrow a book
 ```
 

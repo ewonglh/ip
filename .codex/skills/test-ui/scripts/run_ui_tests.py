@@ -190,10 +190,11 @@ def is_banner_or_separator(line: str) -> bool:
         not stripped
         or set(stripped) == {"─"}
         or stripped.startswith(("/\\", "\\ \\", "\\_\\", "\\/_/"))
+        or "java.util.prefs.FileSystemPreferences" in stripped
+        or stripped == "INFO: Created user preferences directory."
         or stripped in {
-            "Hello! I'm Megia.",
-            "What can I do for you? Type \"help\" to see every command.",
-            "Bye. Hope to see you again soon.",
+            "Hi, I'm Megia, your study companion. Type \"help\" whenever you need a hand.",
+            "Goodbye. Keep going one task at a time.",
         }
     )
 
@@ -250,9 +251,17 @@ def run_session(
     """Run one test session in a fresh Java process and return its output."""
     resources = project_root / "src" / "main" / "resources"
     classpath = os.pathsep.join((str(build_dir), str(resources)))
+    preferences_root = working_dir / "java-prefs"
+    (preferences_root / ".userPrefs").mkdir(parents=True, exist_ok=True)
     try:
         result = subprocess.run(
-            ["java", "-cp", classpath, "megia.Megia"],
+            [
+                "java",
+                f"-Djava.util.prefs.userRoot={preferences_root}",
+                "-cp",
+                classpath,
+                "megia.Megia",
+            ],
             cwd=working_dir,
             input=session.inputs.rstrip("\n") + "\n",
             text=True,
