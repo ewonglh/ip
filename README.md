@@ -79,6 +79,32 @@ language selector switches between English
 and Chinese immediately and remembers the choice through Java Preferences. The
 profile-image button accepts a local PNG, JPG, GIF, or BMP image.
 
+## Running the standalone GUI JAR
+
+Build the distributable fat JAR with Java 25:
+
+```bash
+./gradlew shadowJar
+```
+
+The output is `build/libs/megia.jar`. Launch it from any working directory with:
+
+```bash
+java -jar /path/to/megia.jar
+```
+
+The JAR uses `megia.ui.GuiLauncher` as its entry point and includes the JavaFX
+classes and native libraries for these Java 25 platforms:
+
+- Windows x86-64
+- macOS x86-64 and ARM64
+- Linux x86-64 and ARM64
+
+The application stores `task_storage.csv` in the current working directory, so
+running the JAR outside the repository keeps task data outside the checkout.
+The packaged native libraries are included for these architectures; GUI
+execution evidence on each platform is tracked separately.
+
 ## Running the console tests
 
 ```bash

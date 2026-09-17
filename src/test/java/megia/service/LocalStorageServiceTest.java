@@ -27,6 +27,14 @@ class LocalStorageServiceTest {
     Path temporaryDirectory;
 
     @Test
+    void loadTaskData_missingFile_returnsEmptyOptional() throws Exception {
+        Path storagePath = temporaryDirectory.resolve("missing.csv");
+        LocalStorageService storageService = new LocalStorageService(storagePath.toString());
+
+        assertTrue(storageService.loadTaskData().isEmpty());
+    }
+
+    @Test
     void loadTaskData_allTaskTypes_preservesPersistedFields() throws Exception {
         Path storagePath = temporaryDirectory.resolve("tasks.csv");
         Files.writeString(storagePath, String.join(System.lineSeparator(),
@@ -63,6 +71,27 @@ class LocalStorageServiceTest {
             "TODO,false,task,extra",
             "DEADLINE,false,task",
             "EVENT,false,task,2026-09-10T09:00"
+        };
+
+        for (String malformedRecord : malformedRecords) {
+            Files.writeString(storagePath, malformedRecord);
+
+            StorageException exception = assertThrows(
+                    StorageException.class, storageService::loadTaskData);
+            assertEquals(1, exception.getLineNumber());
+        }
+    }
+
+    @Test
+    void loadTaskData_malformedValues_reportsMalformedStorage() throws Exception {
+        Path storagePath = temporaryDirectory.resolve("tasks.csv");
+        LocalStorageService storageService = new LocalStorageService(storagePath.toString());
+        String[] malformedRecords = {
+            "UNKNOWN,false,task",
+            "TODO,maybe,task",
+            "TODO,false,   ",
+            "DEADLINE,false,task,not-a-date",
+            "EVENT,false,task,2026-09-10T09:00,2026-09-10T09:00"
         };
 
         for (String malformedRecord : malformedRecords) {
@@ -153,6 +182,41 @@ class LocalStorageServiceTest {
                 .map(Task::encode)
                 .collect(Collectors.joining("\n"));
         assertEquals(expectedContent, reloadedContent);
+    }
+
+    @Test
+    void saveTaskData_taskFields_roundTripAfterServiceRestart() throws Exception {
+        Path storagePath = temporaryDirectory.resolve("tasks.csv");
+        LocalStorageService storageService = new LocalStorageService(storagePath.toString());
+        TaskStorage taskStorage = new TaskStorage();
+        taskStorage.addTask(new Todo("阅读 Java 指南", true));
+        taskStorage.addTask(new Deadline(
+                "提交报告", false, LocalDateTime.of(2026, 9, 10, 18, 0)));
+        taskStorage.addTask(new Event(
+                "参加会议",
+                true,
+                LocalDateTime.of(2026, 9, 10, 9, 0),
+                LocalDateTime.of(2026, 9, 11, 17, 0)));
+
+        storageService.saveTaskData(taskStorage);
+
+        TaskStorage reloadedStorage = new LocalStorageService(storagePath.toString())
+                .loadTaskData()
+                .orElseThrow();
+        Todo todo = assertInstanceOf(Todo.class, reloadedStorage.getTaskEntries().get(0).task());
+        Deadline deadline = assertInstanceOf(
+                Deadline.class, reloadedStorage.getTaskEntries().get(1).task());
+        Event event = assertInstanceOf(Event.class, reloadedStorage.getTaskEntries().get(2).task());
+
+        assertTrue(todo.isDone());
+        assertEquals("阅读 Java 指南", todo.getDescription());
+        assertFalse(deadline.isDone());
+        assertEquals("提交报告", deadline.getDescription());
+        assertEquals(LocalDateTime.of(2026, 9, 10, 18, 0), deadline.getDeadline());
+        assertTrue(event.isDone());
+        assertEquals("参加会议", event.getDescription());
+        assertEquals(LocalDateTime.of(2026, 9, 10, 9, 0), event.getStartTime());
+        assertEquals(LocalDateTime.of(2026, 9, 11, 17, 0), event.getEndTime());
     }
 
     @Test
