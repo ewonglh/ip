@@ -28,6 +28,7 @@ import megia.model.Todo;
  */
 public final class LocalStorageService {
     private final String taskStoragePath;
+    private final StorageWriter storageWriter;
 
     /**
      * Creates a local storage service for the specified task file.
@@ -35,7 +36,18 @@ public final class LocalStorageService {
      * @param path Path to the task storage file.
      */
     public LocalStorageService(String path) {
+        this(path, LocalStorageService::writeAtomically);
+    }
+
+    /**
+     * Creates a local storage service with a controlled writer.
+     *
+     * @param path Path to the task storage file.
+     * @param storageWriter Writer used to replace the storage file.
+     */
+    LocalStorageService(String path, StorageWriter storageWriter) {
         this.taskStoragePath = path;
+        this.storageWriter = storageWriter;
     }
 
     /**
@@ -151,6 +163,14 @@ public final class LocalStorageService {
                 .map(Task::encode)
                 .collect(Collectors.joining("\n"));
         Path storagePath = Path.of(taskStoragePath).toAbsolutePath();
+        try {
+            storageWriter.write(storagePath, output);
+        } catch (IOException exception) {
+            throw StorageException.createWriteFailure(taskStoragePath);
+        }
+    }
+
+    private static void writeAtomically(Path storagePath, String output) throws IOException {
         Path temporaryPath = null;
         try {
             temporaryPath = Files.createTempFile(
@@ -162,9 +182,12 @@ public final class LocalStorageService {
                     StandardOpenOption.WRITE)) {
                 writer.write(output);
             }
-            moveIntoPlace(temporaryPath, storagePath);
-        } catch (IOException exception) {
-            throw StorageException.createWriteFailure(taskStoragePath);
+            try {
+                Files.move(temporaryPath, storagePath,
+                        StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
+            } catch (java.nio.file.AtomicMoveNotSupportedException exception) {
+                Files.move(temporaryPath, storagePath, StandardCopyOption.REPLACE_EXISTING);
+            }
         } finally {
             if (temporaryPath != null) {
                 try {
@@ -173,15 +196,6 @@ public final class LocalStorageService {
                     // The completed save is still valid when temporary-file cleanup fails.
                 }
             }
-        }
-    }
-
-    private static void moveIntoPlace(Path temporaryPath, Path storagePath) throws IOException {
-        try {
-            Files.move(temporaryPath, storagePath,
-                    StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
-        } catch (java.nio.file.AtomicMoveNotSupportedException exception) {
-            Files.move(temporaryPath, storagePath, StandardCopyOption.REPLACE_EXISTING);
         }
     }
 }
