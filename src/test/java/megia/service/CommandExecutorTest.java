@@ -18,6 +18,7 @@ import org.junit.jupiter.api.io.TempDir;
 
 import megia.exception.ErrorCode;
 import megia.exception.StorageException;
+import megia.exception.TaskNotFoundException;
 import megia.exception.UserInputException;
 import megia.model.CommandResult;
 import megia.model.Deadline;
@@ -162,6 +163,95 @@ class CommandExecutorTest {
     }
 
     @Test
+    void execute_missingParameters_rejectsWithoutChangingTaskData() throws Exception {
+        Path storagePath = temporaryDirectory.resolve("tasks.csv");
+        TaskStorage taskStorage = new TaskStorage();
+        CommandExecutor commandExecutor = createCommandExecutor(taskStorage, storagePath);
+
+        commandExecutor.execute("todo keep this task");
+        String storedTasksBeforeRejections = Files.readString(storagePath);
+        List<String> invalidCommands = List.of(
+                "todo",
+                "deadline report",
+                "deadline /by 2024-02-29 1800",
+                "deadline report /by",
+                "event meeting /to 2024-02-29 1000",
+                "event meeting /from 2024-02-29 0900",
+                "event meeting /on 2024-02-29 /from /to 1000",
+                "find",
+                "mark",
+                "delete");
+
+        for (String invalidCommand : invalidCommands) {
+            assertThrows(UserInputException.class, () -> commandExecutor.execute(invalidCommand));
+            assertEquals(1, taskStorage.getTaskCount());
+            assertEquals("keep this task", taskStorage.getTaskEntries().get(0).task().getDescription());
+            assertEquals(storedTasksBeforeRejections, Files.readString(storagePath));
+        }
+    }
+
+    @Test
+    void execute_invalidTaskNumbers_rejectWithoutMutationAndValidNeighborsSucceed() throws Exception {
+        Path storagePath = temporaryDirectory.resolve("tasks.csv");
+        TaskStorage taskStorage = new TaskStorage();
+        CommandExecutor commandExecutor = createCommandExecutor(taskStorage, storagePath);
+
+        commandExecutor.execute("todo keep this task");
+        String storedTasksBeforeRejections = Files.readString(storagePath);
+        List<String> mutationCommands = List.of("mark", "unmark", "delete");
+        List<String> malformedTaskIds = List.of("one", "0", "-1", "2147483648");
+
+        for (String mutationCommand : mutationCommands) {
+            for (String malformedTaskId : malformedTaskIds) {
+                ErrorCode expectedErrorCode = malformedTaskId.equals("one")
+                        ? ErrorCode.TASK_ID_NOT_INTEGER
+                        : malformedTaskId.equals("2147483648")
+                                ? ErrorCode.TASK_ID_TOO_LARGE
+                                : ErrorCode.TASK_ID_NOT_POSITIVE;
+                String malformedCommand = mutationCommand + " " + malformedTaskId;
+                UserInputException exception = assertThrows(
+                        UserInputException.class, () -> commandExecutor.execute(malformedCommand));
+                assertEquals(expectedErrorCode, exception.getErrorCode());
+                assertTaskDataUnchanged(taskStorage, storagePath, storedTasksBeforeRejections);
+            }
+
+            String outOfRangeCommand = mutationCommand + " 2";
+            TaskNotFoundException exception = assertThrows(
+                    TaskNotFoundException.class, () -> commandExecutor.execute(outOfRangeCommand));
+            assertEquals(ErrorCode.TASK_NOT_FOUND, exception.getErrorCode());
+            assertTaskDataUnchanged(taskStorage, storagePath, storedTasksBeforeRejections);
+        }
+
+        commandExecutor.execute("mark 1");
+        assertTrue(taskStorage.getTaskEntries().get(0).task().isDone());
+        commandExecutor.execute("unmark 1");
+        assertFalse(taskStorage.getTaskEntries().get(0).task().isDone());
+        commandExecutor.execute("delete 1");
+        assertEquals(0, taskStorage.getTaskCount());
+    }
+
+    @Test
+    void execute_existingWhitespaceAndBoundaryDates_acceptValidCommands() throws Exception {
+        Path storagePath = temporaryDirectory.resolve("tasks.csv");
+        TaskStorage taskStorage = new TaskStorage();
+        CommandExecutor commandExecutor = createCommandExecutor(taskStorage, storagePath);
+
+        commandExecutor.execute("  todo   buy milk  ");
+        commandExecutor.execute("deadline   submit report   /by   29/2/2024 1800");
+        commandExecutor.execute(
+                "event   team meeting   /on   2024-02-29   /from   0900   /to   1000");
+
+        assertEquals(3, taskStorage.getTaskCount());
+        assertEquals("buy milk", taskStorage.getTaskEntries().get(0).task().getDescription());
+        Deadline deadline = assertInstanceOf(
+                Deadline.class, taskStorage.getTaskEntries().get(1).task());
+        Event event = assertInstanceOf(Event.class, taskStorage.getTaskEntries().get(2).task());
+        assertEquals(LocalDateTime.of(2024, 2, 29, 18, 0), deadline.getDeadline());
+        assertEquals(LocalDateTime.of(2024, 2, 29, 9, 0), event.getStartTime());
+        assertEquals(LocalDateTime.of(2024, 2, 29, 10, 0), event.getEndTime());
+    }
+
+    @Test
     void execute_taskDescriptionsWithLineBreaks_rejectBeforeMutation() throws Exception {
         Path storagePath = temporaryDirectory.resolve("tasks.csv");
         TaskStorage taskStorage = new TaskStorage();
@@ -229,5 +319,19 @@ class CommandExecutorTest {
         return taskStorage.getTaskEntries().stream()
                 .map(entry -> entry.task().encode())
                 .toList();
+    }
+
+    private CommandExecutor createCommandExecutor(TaskStorage taskStorage, Path storagePath) {
+        LocalStorageService localStorageService = new LocalStorageService(storagePath.toString());
+        return new CommandExecutor(new TaskService(taskStorage, localStorageService));
+    }
+
+    private void assertTaskDataUnchanged(
+            TaskStorage taskStorage, Path storagePath, String storedTasksBeforeRejections)
+            throws Exception {
+        assertEquals(1, taskStorage.getTaskCount());
+        assertFalse(taskStorage.getTaskEntries().get(0).task().isDone());
+        assertEquals("keep this task", taskStorage.getTaskEntries().get(0).task().getDescription());
+        assertEquals(storedTasksBeforeRejections, Files.readString(storagePath));
     }
 }
